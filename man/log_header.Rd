@@ -23,7 +23,6 @@ This function creates a log file and writes a standard header to it. The header 
 }
 \examples{
 # Assuming 'opts' is a list of options and 'script_name' is the name of the script
-start_time<-Sys.time()
-opt <- list(sumstats = 'data/sumstats.gz', population = 'EUR', n = 2309)
-log_header(paste0(tempdir(),"/logfile.log"), opt, "script_name.R", start_time)
+start_time <- Sys.time()
+log_header(paste0(tempdir(),"/logfile.log"), opt_list, "script_name.R", start_time)
 }

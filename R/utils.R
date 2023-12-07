@@ -7,8 +7,7 @@
 #' @importFrom utils stack
 #'
 #' @examples
-#' opt<-list(sumstats = 'data/sumstats.gz', population = 'EUR', n = 2309)
-#' opt_to_df(opt)
+#' opt_to_df(opt_list)
 #'
 opt_to_df<-function(opt){
   opt<-stack(opt)
@@ -31,9 +30,8 @@ opt_to_df<-function(opt){
 #'
 #' @examples
 #' # Assuming 'opts' is a list of options and 'script_name' is the name of the script
-#' start_time<-Sys.time()
-#' opt <- list(sumstats = 'data/sumstats.gz', population = 'EUR', n = 2309)
-#' log_header(paste0(tempdir(),"/logfile.log"), opt, "script_name.R", start_time)
+#' start_time <- Sys.time()
+#' log_header(paste0(tempdir(),"/logfile.log"), opt_list, "script_name.R", start_time)
 log_header <- function(log_file, opt, script, start.time) {
   sink(file = log_file, append = FALSE)
   cat0(

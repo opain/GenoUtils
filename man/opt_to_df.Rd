@@ -16,7 +16,6 @@ data.frame with two columns called 'Parameter' and 'Value'
 Converts a list of parameters into a table
 }
 \examples{
-opt<-list(sumstats = 'data/sumstats.gz', population = 'EUR', n = 2309)
-opt_to_df(opt)
+opt_to_df(opt_list)
 
 }
