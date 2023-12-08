@@ -7,7 +7,7 @@
 #' @return A data frame with columns 'Original' (original column names from `sub_ss`), 'Interpreted' (standardized column names based on a predefined dictionary), 'Keep' (logical indicating whether the column is kept), 'Reason' (reason for ignoring a column, if applicable), and 'Description' (description of the interpreted column).
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
 #'
 #' @examples
 #' header_info <- head_interp(raw_sumstats_1)
@@ -96,7 +96,7 @@ head_interp<-function(sub_ss){
 #' @return A data frame of GWAS summary statistics with updated and validated column names based on the interpreted header.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
 #'
 #' @examples
 #' formatted_ss_data <- format_header(raw_sumstats_1)
@@ -397,13 +397,14 @@ detect_strand_flip<-function(targ, ref){
 #' @return A harmonized data frame of target SNP data.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
 #'
 #' @examples
 #' # Get path and prefix to example ref_rds data
 #' reference_data_path <- gsub( '22.rds','',
 #'   system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
-#' harmonized_data <- ref_harmonise(clean_sumstats_1, reference_data_path)
+#' harmonised_data <- ref_harmonise(clean_sumstats_1, reference_data_path)
+#' print(head(harmonised_data))
 ref_harmonise<-function(targ, ref_rds, log_file = NULL){
   # Convert data.frame to data.table if necessary
   if (is.data.frame(targ)) {
@@ -417,7 +418,6 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
 
   ref_22<-readRDS(file = paste0(ref_rds, 22, '.rds'))
   if(!(all(c('CHR','A1','A2','REF.FRQ','IUPAC') %in% names(ref_22)) & any(grepl('BP_GRCh', names(ref_22))))){
-    print(names(ref_22))
     stop('CHR, A1, A2, REF.FRQ, IUPAC and BP coordinates must be present in ref_rds files.\n')
   }
 
@@ -426,6 +426,11 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
 
   # Check whether RSIDs are available for majority of SNPs in GWAS
   rsid_avail<-(sum(grepl('rs', targ$SNP)) > 0.9*length(targ$SNP))
+
+  # Remove REF.FREQ column from targ if present
+  if(any(names(targ) == 'REF.FREQ')){
+    targ$REF.FREQ<-NULL
+  }
 
   targ_matched<-NULL
   flip_logical_all<-NULL
@@ -461,7 +466,7 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
 
         # Merge target and reference by BP
         ref_target<-merge(targ_i, ref_i, by.x='BP', by.y=paste0('REF.BP_',target_build))
-        print(head(ref_target))
+
         # Identify targ-ref strand flips, and flip target
         flip_logical<-detect_strand_flip(targ = ref_target$IUPAC, ref = ref_target$REF.IUPAC)
         flip_logical_all<-c(flip_logical_all, flip_logical)
@@ -499,7 +504,6 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
     log_add(log_file = log_file, message = 'Using SNP, A1 and A2 to merge with the reference.')
 
     for(i in chrs){
-      print(i)
 
       # Read reference data
       ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))
@@ -513,7 +517,7 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
       ref_i<-ref_i[, c('REF.CHR','REF.SNP',paste0('REF.BP_',target_build),'REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
 
       # Merge target and reference by SNP ID
-      ref_target<-merge(targ, tmp, by='SNP')
+      ref_target<-merge(targ, ref_i, by.x='SNP', by.y='REF.SNP')
 
       # Identify targ-ref strand flips, and flip target
       flip_logical<-detect_strand_flip(targ = ref_target$IUPAC, ref = ref_target$REF.IUPAC)
@@ -540,7 +544,7 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
     }
   }
 
-  log_add(log_file = log_file, message = paste0('After matching variants to the reference ,',nrow(targ_matched),' variants remain.'))
+  log_add(log_file = log_file, message = paste0('After matching variants to the reference, ',nrow(targ_matched),' variants remain.'))
   log_add(log_file = log_file, message = paste0(sum(flip_logical_all), ' variants were flipped to match reference.'))
 
   return(targ_matched)
@@ -557,7 +561,7 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
 #' @return A filtered data frame of SNP data.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
 #'
 #' @examples
 #' filtered_data <- filter_info(clean_sumstats_1, 0.8)
@@ -588,7 +592,7 @@ filter_info<-function(targ, thresh, log_file = NULL){
 #' @return A filtered data frame with variants meeting the MAF threshold.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
 #'
 #' @examples
 #' filtered_data <- filter_maf(targ = clean_sumstats_1, thresh = 0.05, ref = FALSE)
@@ -629,8 +633,10 @@ filter_maf<-function(targ, thresh, ref = F, log_file = NULL){
 #' @return A filtered data frame with variants within the specified frequency discrepancy threshold.
 #' @export
 #'
-#' @importFrom data.table
-#'
+#' @import data.table
+#' @import grDevices
+#' @import graphics
+
 #' @examples
 #' filtered_data <- discord_maf( targ = clean_sumstats_1,
 #'                               thresh = 0.01,
@@ -641,11 +647,15 @@ discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA){
     targ <- data.table::as.data.table(targ)
   }
 
+  if(!(any(names(targ) %in% 'REF.FREQ'))) {
+    stop('REF.FREQ column must be present in targ')
+  }
+
   if(sum(names(targ) == 'FREQ') == 1){
     targ$diff<-abs(targ$FREQ-targ$REF.FREQ)
 
     if(!is.na(plot_file)){
-      png(plot_file, unit='px', res=300, width=1200, height=1200)
+      png(plot_file, units='px', res=300, width=1200, height=1200)
       plot(targ$REF.FREQ[targ$diff > thresh],targ$FREQ[targ$diff > thresh], xlim=c(0,1), ylim=c(0,1), xlab='Reference Allele Frequency', ylab='Sumstat Allele Frequency')
       abline(coef = c(0,1))
       dev.off()
@@ -672,7 +682,8 @@ discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA){
 #' @return A filtered data frame with variants within the specified sample size range.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
+#' @import stats
 #'
 #' @examples
 #' filtered_data <- filter_n(targ = clean_sumstats_1, n_sd = 3)
@@ -690,6 +701,7 @@ filter_n <- function(targ, n_sd = 3, log_file = NULL){
   } else {
     log_add(log_file = log_file, message = 'N column is not present or invariant.')
   }
+  return(targ)
 }
 
 #' Convert Odds Ratios or Z-scores to Beta Coefficients
@@ -702,7 +714,7 @@ filter_n <- function(targ, n_sd = 3, log_file = NULL){
 #' @return The input data frame with added `BETA` column.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
 #'
 #' @examples
 #' updated_data <- insert_beta(targ = clean_sumstats_1)
@@ -744,7 +756,8 @@ insert_beta <- function(targ, log_file = NULL){
 #' @return The input data frame with added `SE` column.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
+#' @import stats
 #'
 #' @examples
 #' updated_data <- insert_se(targ = clean_sumstats_1)
@@ -777,7 +790,8 @@ insert_se <- function(targ, log_file = NULL){
 #' @return The input data frame with adjusted P-values.
 #' @export
 #'
-#' @importFrom data.table
+#' @import data.table
+#' @import stats
 #'
 #' @examples
 #' # Read in example clean sumstats

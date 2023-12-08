@@ -9,17 +9,24 @@ log_header(log_file, opt, script, start.time)
 \arguments{
 \item{log_file}{A string specifying the path and name of the log file to be created or appended.}
 
-\item{opt}{A list or other object containing the command line options to be written to the log file.}
+\item{opt}{A list or other structure containing command line options passed to the script.
+The function will convert this information into a data frame and log it as part of the header.
+This is useful for documenting the parameters and values used during a script run.}
 
 \item{script}{A string specifying the name of the script for which the log is being created.}
 
-\item{start.time}{The start time of the process or operation, expected to be an object of class POSIXct as obtained from Sys.time(). This parameter typically captures the time at which a particular process or analysis was initiated. It's used within the function to calculate durations, log time stamps, or for other time-related operations.}
+\item{start.time}{The start time of the process or operation, expected to be an object of class POSIXct
+as obtained from Sys.time(). This parameter typically captures the time at which a particular process
+or analysis was initiated. It's used within the function to calculate durations, log time stamps,
+or for other time-related operations.}
 }
 \value{
 Invisibly returns NULL. This function is used for its side effect of writing to a log file.
 }
 \description{
-This function creates a log file and writes a standard header to it. The header includes the script name, contact information, and any command line options passed to the script. It's useful for tracking and documenting script runs.
+This function creates a log file and writes a standard header to it. The header includes the script name,
+contact information, and any command line options passed to the script. It's useful for tracking and
+documenting script runs.
 }
 \examples{
 # Assuming 'opts' is a list of options and 'script_name' is the name of the script

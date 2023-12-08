@@ -2,24 +2,22 @@
 % Please edit documentation in R/utils.R
 \name{cat0}
 \alias{cat0}
-\title{cat function with '' as default separator}
+\title{Concatenate and Print Objects With an Optional Separator}
 \usage{
-cat0(..., sep = "", file = "", append = FALSE)
+cat0(..., sep = "")
 }
 \arguments{
-\item{...}{Arguments passed to the base 'cat' function. These can include objects to be concatenated and printed.}
+\item{...}{Arguments passed to the base `cat` function.
+These can include objects to be concatenated and printed.}
 
-\item{sep}{A string specifying the separator to be used between the objects. Defaults to an empty string.}
-
-\item{file}{A connection, or a character string naming the file to print to. If "" (the default), cat0 prints to the standard output connection.}
-
-\item{append}{Logical. If TRUE, the output will be appended to the file; otherwise, it will overwrite the contents of the file.}
+\item{sep}{A string specifying the separator to be used between the objects.
+Defaults to an empty string, meaning that objects will be concatenated without any separator.}
 }
 \value{
-This function invisibly returns NULL. It is used for its side effect of printing to the console or a file.
+Invisibly returns `NULL`. It is used primarily for its side effect of printing.
 }
 \description{
-This function is a wrapper around the base R 'cat' function, with the default separator set to an empty string.
+This function is a wrapper around the base R `cat` function, with the default separator set to an empty string. It concatenates and prints its arguments.
 }
 \examples{
 cat0("Hello", "World") # prints "HelloWorld"

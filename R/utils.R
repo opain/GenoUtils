@@ -18,12 +18,19 @@ opt_to_df<-function(opt){
 
 #' Create log file with standard header including script name and command line options
 #'
-#' This function creates a log file and writes a standard header to it. The header includes the script name, contact information, and any command line options passed to the script. It's useful for tracking and documenting script runs.
+#' This function creates a log file and writes a standard header to it. The header includes the script name,
+#' contact information, and any command line options passed to the script. It's useful for tracking and
+#' documenting script runs.
 #'
 #' @param log_file A string specifying the path and name of the log file to be created or appended.
-#' @param opt A list or other object containing the command line options to be written to the log file.
+#' @param opt A list or other structure containing command line options passed to the script.
+#'   The function will convert this information into a data frame and log it as part of the header.
+#'   This is useful for documenting the parameters and values used during a script run.
 #' @param script A string specifying the name of the script for which the log is being created.
-#' @param start.time The start time of the process or operation, expected to be an object of class POSIXct as obtained from Sys.time(). This parameter typically captures the time at which a particular process or analysis was initiated. It's used within the function to calculate durations, log time stamps, or for other time-related operations.
+#' @param start.time The start time of the process or operation, expected to be an object of class POSIXct
+#'   as obtained from Sys.time(). This parameter typically captures the time at which a particular process
+#'   or analysis was initiated. It's used within the function to calculate durations, log time stamps,
+#'   or for other time-related operations.
 #'
 #' @return Invisibly returns NULL. This function is used for its side effect of writing to a log file.
 #' @export
@@ -71,22 +78,20 @@ log_add <- function(log_file = NULL, message, sep = '\n') {
   }
 }
 
-#' cat function with '' as default separator
+#' Concatenate and Print Objects With an Optional Separator
 #'
-#' This function is a wrapper around the base R 'cat' function, with the default separator set to an empty string.
+#' This function is a wrapper around the base R `cat` function, with the default separator set to an empty string. It concatenates and prints its arguments.
 #'
-#' @param ... Arguments passed to the base 'cat' function. These can include objects to be concatenated and printed.
-#' @param sep A string specifying the separator to be used between the objects. Defaults to an empty string.
-#' @param file A connection, or a character string naming the file to print to. If "" (the default), cat0 prints to the standard output connection.
-#' @param append Logical. If TRUE, the output will be appended to the file; otherwise, it will overwrite the contents of the file.
-#'
-#' @return This function invisibly returns NULL. It is used for its side effect of printing to the console or a file.
-#' @export
-#'
+#' @param ... Arguments passed to the base `cat` function.
+#'   These can include objects to be concatenated and printed.
+#' @param sep A string specifying the separator to be used between the objects.
+#'   Defaults to an empty string, meaning that objects will be concatenated without any separator.
+#' @return Invisibly returns `NULL`. It is used primarily for its side effect of printing.
 #' @examples
 #' cat0("Hello", "World") # prints "HelloWorld"
 #' cat0("Hello", "World", sep = " ") # prints "Hello World"
 #' cat0("Line1", "Line2", sep = "\n") # prints "Line1" and "Line2" on separate lines
-cat0 <- function(..., sep = '', file = "", append = FALSE) {
-  cat(..., sep = sep, file = file, append = append)
+#' @export
+cat0 <- function(..., sep = '') {
+  cat(..., sep = sep)
 }

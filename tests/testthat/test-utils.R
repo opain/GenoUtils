@@ -40,12 +40,16 @@ test_that("log_add writes message to log file or console", {
 })
 
 # Test for cat0
-test_that("cat0 concatenates and prints with custom separator", {
-  # Capture output to a temp file
-  output_file <- tempfile()
-  cat0("Hello", "World", sep = " ", file = output_file)
-  content <- readLines(output_file)
-  expect_equal(content, "Hello World")
+test_that("cat0 concatenates objects with and without separator", {
+  # Test default behavior (no separator)
+  output <- capture.output(cat0("Hello", "World"))
+  expect_equal(output, "HelloWorld")
 
-  # Additional checks for default separator and other behavior can be added
+  # Test with a space as a separator
+  output <- capture.output(cat0("Hello", "World", sep = " "))
+  expect_equal(output, "Hello World")
+
+  # Test with a newline as a separator
+  output <- capture.output(cat0("Line1", "Line2", sep = "\n"))
+  expect_equal(output, c("Line1", "Line2"))
 })

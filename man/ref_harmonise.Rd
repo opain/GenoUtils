@@ -23,5 +23,6 @@ This function harmonizes target SNP data with reference SNP data by alleles, and
 # Get path and prefix to example ref_rds data
 reference_data_path <- gsub( '22.rds','',
   system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
-harmonized_data <- ref_harmonise(clean_sumstats_1, reference_data_path)
+harmonised_data <- ref_harmonise(clean_sumstats_1, reference_data_path)
+print(head(harmonised_data))
 }

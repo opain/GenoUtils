@@ -225,10 +225,12 @@ ss_head_dict<-list(
     "HM_EFFECT_ALLELE_FREQUENCY"
   ),
   FRQ_A = c(
+    "FRQ_A",
     "FREQ_A",
     "F_A"
   ),
   FRQ_U = c(
+    "FRQ_U",
     "FREQ_U",
     "F_U"
   ),
