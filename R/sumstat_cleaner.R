@@ -392,6 +392,7 @@ detect_strand_flip<-function(targ, ref){
 #'
 #' @param targ A data frame of target SNP data to be harmonized.
 #' @param ref_rds The path to reference data files in RDS format.
+#' @param population The reference population matching the GWAS sample. This option is used to determine ancestry-matched reference allele frequencies.
 #' @param log_file An optional path to a log file where messages will be recorded.
 #'
 #' @return A harmonized data frame of target SNP data.
@@ -403,9 +404,9 @@ detect_strand_flip<-function(targ, ref){
 #' # Get path and prefix to example ref_rds data
 #' reference_data_path <- gsub( '22.rds','',
 #'   system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
-#' harmonised_data <- ref_harmonise(clean_sumstats_1, reference_data_path)
+#' harmonised_data <- ref_harmonise(clean_sumstats_1, reference_data_path, 'EUR')
 #' print(head(harmonised_data))
-ref_harmonise<-function(targ, ref_rds, log_file = NULL){
+ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
   # Convert data.frame to data.table if necessary
   if (is.data.frame(targ)) {
     targ <- data.table::as.data.table(targ)
@@ -417,8 +418,17 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
   }
 
   ref_22<-readRDS(file = paste0(ref_rds, 22, '.rds'))
-  if(!(all(c('CHR','A1','A2','REF.FRQ','IUPAC') %in% names(ref_22)) & any(grepl('BP_GRCh', names(ref_22))))){
-    stop('CHR, A1, A2, REF.FRQ, IUPAC and BP coordinates must be present in ref_rds files.\n')
+  if(!(all(c('CHR','A1','A2','IUPAC') %in% names(ref_22)) & any(grepl('BP_GRCh', names(ref_22))))){
+    stop('CHR, A1, A2, IUPAC and BP coordinates must be present in ref_rds files.\n')
+  }
+
+  if(!(any(grepl('REF.FRQ', names(ref_22))))){
+    stop('There are no REF.FRQ.<POP> columns.\n')
+  }
+
+  ref_pops <- gsub('REF.FRQ.', '', names(ref_22)[grepl('REF.FRQ', names(ref_22))])
+  if(!(population %in% ref_pops)){
+    stop(paste0('Specified reference population must be one of the following: ', paste0(ref_pops, collapse=', '),'\n'))
   }
 
   # Check whether CHR and BP information are present
@@ -458,7 +468,7 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
 
         # Rename columns prior to merging with target
         names(ref_i)<-paste0('REF.',names(ref_i))
-        names(ref_i)[names(ref_i) == 'REF.REF.FRQ']<-'REF.FREQ'
+        names(ref_i)[names(ref_i) == paste0('REF.REF.FRQ.',population)]<-'REF.FREQ'
         ref_i<-ref_i[, c('REF.CHR','REF.SNP',paste0('REF.BP_',target_build),'REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
 
         # Subset chromosome i from target
@@ -514,7 +524,7 @@ ref_harmonise<-function(targ, ref_rds, log_file = NULL){
       # Rename columns prior to merging with target
       names(ref_i)<-paste0('REF.',names(ref_i))
       names(ref_i)[names(ref_i) == 'REF.REF.FRQ']<-'REF.FREQ'
-      ref_i<-ref_i[, c('REF.CHR','REF.SNP',paste0('REF.BP_',target_build),'REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
+      ref_i<-ref_i[, c('REF.CHR','REF.SNP','REF.BP_GRCh37','REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
 
       # Merge target and reference by SNP ID
       ref_target<-merge(targ, ref_i, by.x='SNP', by.y='REF.SNP')
