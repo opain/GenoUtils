@@ -523,7 +523,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
 
       # Rename columns prior to merging with target
       names(ref_i)<-paste0('REF.',names(ref_i))
-      names(ref_i)[names(ref_i) == 'REF.REF.FRQ']<-'REF.FREQ'
+      names(ref_i)[names(ref_i) == paste0('REF.REF.FRQ.',population)]<-'REF.FREQ'
       ref_i<-ref_i[, c('REF.CHR','REF.SNP','REF.BP_GRCh37','REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
 
       # Merge target and reference by SNP ID

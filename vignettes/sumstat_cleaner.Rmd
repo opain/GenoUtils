@@ -1,0 +1,54 @@
+---
+title: "sumstat_cleaner.R"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{sumstat_cleaner}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# sumstat_cleaner.R
+
+## Overview
+The `sumstat_cleaner.R` script is a command-line tool developed as part of the GenoUtils R package. This script is designed to process and clean genetic summary statistics data. It includes various functionalities such as formatting headers, filtering based on allele frequency, and harmonizing data with reference chromosomes.
+
+## Prerequisites
+Before running this script, ensure you have installed the GenoUtils package along with its dependencies. The script also requires the `optparse` and `data.table` packages for option parsing and data manipulation, respectively.
+
+## Usage
+To use the `sumstat_cleaner.R` script, run it from the command line with the required arguments. The basic command structure is:
+
+### Options
+The script accepts the following command-line options:
+
+| Parameter   | Description                                               | Type     | Required | Default Value | Example Usage                    |
+|-------------|-----------------------------------------------------------|----------|----------|---------------|----------------------------------|
+| `--sumstats`| Path to the summary statistics file.                      | character| Yes      | NA            | `--sumstats "/path/to/sumstats"` |
+| `--ref_chr` | Path to per chromosome reference `.rds` files.            | character| Yes      | NA            | `--ref_chr "/path/to/ref/files"` |
+| `--population`| Reference population code.                              | character| Yes      | NA            | `--population "EUR"`             |
+| `--sampling`| Sampling fraction of cases vs. controls.                  | numeric  | No       | NA            | `--sampling 0.5`                 |
+| `--n`       | Total sample size.                                        | numeric  | No       | NA            | `--n 1000`                       |
+| `--info`    | INFO threshold for filtering variants.                    | numeric  | No       | 0.9           | `--info 0.8`                     |
+| `--maf`     | Minor Allele Frequency (MAF) threshold for filtering.     | numeric  | No       | 0.01          | `--maf 0.05`                     |
+| `--maf_diff`| Threshold for difference between ref and reported MAF.    | numeric  | No       | 0.2           | `--maf_diff 0.1`                 |
+| `--output`  | Path for output files.                                    | character| No       | './Output'    | `--output "/path/to/output"`     |
+
+## Features
+The script performs several steps in processing the summary statistics data:
+
+1. **Reading and Initial Processing**: Reads the input data and prepares it for cleaning and analysis.
+2. **Formatting and Filtering**: Formats headers, filters based on various thresholds like MAF and INFO scores.
+3. **Harmonization**: Harmonizes the data with reference chromosome information.
+4. **Output**: Saves the cleaned data to the specified output path.
+
+## Output
+The script outputs a cleaned version of the summary statistics file, along with a log file containing details of the processing steps and any important messages generated during the execution.
+
+## Contributing
+For any suggestions or issues, please open an issue or submit a pull request on the [GitHub repository](https://github.com/opain/GenoUtils).
+
+## License
+This script is part of the GenoUtils package and is under the same license as the package. For more details, see the LICENSE file in the package repository.
+
+## Author
+Oliver Pain, King's College London University

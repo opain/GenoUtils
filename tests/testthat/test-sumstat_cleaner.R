@@ -199,3 +199,29 @@ test_that("format_header functions correctly with no errors or warnings", {
   expect_equal(names(formatted_data), expected_colnames)
 })
 
+#########
+# sumstat_cleaner.R
+#########
+
+test_that("run sumstat_cleaner.R script", {
+  # Specify location of relevent files
+  rscript_path <- file.path(Sys.getenv("R_HOME"), "bin", "Rscript")
+  script_path <- system.file("scripts", "sumstat_cleaner.R", package = "GenoUtils")
+  ref_path <- gsub( '22.rds','', system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
+
+  # Write test GWAS sumstats as temporary file on disk
+  fwrite(raw_sumstats_1, 'raw.txt', sep=' ', na='NA', row.names=F)
+
+  # Run sumstat_cleaner.R with test data
+  system(paste0(rscript_path, " ", script_path ," --sumstats raw.txt --ref_chr ",ref_path," --population EUR --output clean"))
+
+  # Read in cleaned sumstats
+  cleaned<-fread("clean.gz")
+
+  # Read in example output
+  sumstat_cleaner_output<-readRDS(system.file("extdata", "sumstat_cleaner_output.rds", package = "GenoUtils"))
+
+  # Test if the function runs without errors or warnings and correctly updates the header
+  expect_equal(sumstat_cleaner_output$sumstats, cleaned)
+})
+

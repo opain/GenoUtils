@@ -1,4 +1,4 @@
-# Read in cleaned sumstats
+# Read in raw sumstats
 library(data.table)
 tmp<-fread(paste0('~/oliverpainfel/Software/MyGit/GenoDisc/pipeline/test_data/reference/gwas_sumstats/COAD01.gz'))
 
