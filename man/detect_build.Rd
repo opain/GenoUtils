@@ -23,6 +23,6 @@ This function compares target SNP data with reference data to determine the geno
 reference_data_path <- gsub('22.rds', '',
   system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
 ref <- readRDS(paste0(reference_data_path,'22.rds'))
-targ <- clean_sumstats_1
+targ <- clean_sumstats_1[clean_sumstats_1$CHR == 22,]
 detected_build <- detect_build(ref, targ)
 }

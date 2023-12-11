@@ -12,7 +12,7 @@ system(paste0("Rscript inst/scripts/sumstat_cleaner.R --sumstats ", tmp_dir,"/ra
 log<-readLines(paste0(tmp_dir,"/clean.log"))
 cleaned<-fread(paste0(tmp_dir,"/clean.gz"))
 
-sumstat_cleaner_output <- list(log = log, sumstats = cleaned)
+sumstat_cleaner_output_1 <- list(log = log, sumstats = cleaned)
 
-saveRDS(sumstat_cleaner_output, 'inst/extdata/sumstat_cleaner_output.rds')
+saveRDS(sumstat_cleaner_output_1, 'inst/extdata/sumstat_cleaner_output_1.rds')
 

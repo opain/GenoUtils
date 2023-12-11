@@ -250,7 +250,7 @@ snp_iupac<-function(x=NA, y=NA){
 #' reference_data_path <- gsub('22.rds', '',
 #'   system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
 #' ref <- readRDS(paste0(reference_data_path,'22.rds'))
-#' targ <- clean_sumstats_1
+#' targ <- clean_sumstats_1[clean_sumstats_1$CHR == 22,]
 #' detected_build <- detect_build(ref, targ)
 detect_build<-function(ref, targ, log_file = NULL){
   # Convert data.frame to data.table if necessary
@@ -283,14 +283,19 @@ detect_build<-function(ref, targ, log_file = NULL){
   targ$CHR<-as.character(targ$CHR)
 
   matched<-list()
+  build_overlap<-NULL
   target_build<-NA
   for(build_i in builds){
     matched<-merge(targ, ref, by.x=c('CHR','BP','IUPAC'), by.y=c('CHR',paste0('BP_GRCh', build_i),'IUPAC'))
     overlap<-nrow(matched)/nrow(targ)
-    if(overlap > 0.7){
-      target_build<-paste0('GRCh',build_i)
-    }
-    log_add(log_file = log_file, message = paste0('GRCh',build_i,' match: ',round(overlap*100, 2),'%'))
+    build_overlap<-rbind(build_overlap, data.frame(build = build_i,
+                                                   nsnp = nrow(matched),
+                                                   overlap = overlap))
+    log_add(log_file = log_file, message = paste0('GRCh', build_i, ' match: ', round(overlap*100, 2), '%'))
+  }
+
+  if(!(all(build_overlap$overlap < 0.1 & build_overlap$nsnp < 8000))){
+    target_build<-paste0('GRCh',build_overlap$build[build_overlap$overlap == max(build_overlap$overlap)])
   }
 
   return(target_build)
@@ -445,6 +450,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
   targ_matched<-NULL
   flip_logical_all<-NULL
   chrs<-c(1:22)
+  target_build<-NA
 
   if(chr_bp_avail){
     log_add(log_file = log_file, message = 'Merging sumstats with reference using CHR, BP, A1, and A2')
