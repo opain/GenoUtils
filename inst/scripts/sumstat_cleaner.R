@@ -44,10 +44,6 @@ GWAS <- fread(opt$sumstats)
 
 log_add(log_file = log_file, message = paste0('GWAS contains ',nrow(GWAS),' variants.'))
 
-# Insert N using opt$N if N data isn't already present
-if(!(all(c('N_CAS','N_CON') %in% names(GWAS)) | 'N' %in% names(GWAS))){
-  GWAS$N <- opt$n
-}
 
 #####
 # Interpret and update header
@@ -55,6 +51,11 @@ if(!(all(c('N_CAS','N_CON') %in% names(GWAS)) | 'N' %in% names(GWAS))){
 
 # Update header and drop columns that aren't recognised
 GWAS <- format_header(sumstats = GWAS, log_file = log_file)
+
+# Insert N using opt$N if N data isn't already present
+if(!(all(c('N_CAS','N_CON') %in% names(GWAS)) | 'N' %in% names(GWAS))){
+  GWAS$N <- opt$n
+}
 
 #####
 # Format FREQ and N columns
@@ -72,6 +73,12 @@ if(all(c('N_CAS','N_CON') %in% names(GWAS)) & !('N' %in% names(GWAS))){
 
 # Retain only expected columns
 GWAS <- GWAS[, names(GWAS) %in% c('CHR','BP','SNP','A1','A2','BETA','SE','OR','Z','FREQ','N','INFO','P'), with=F]
+
+# Assign correct class to columns
+chr_cols<-names(GWAS)[names(GWAS) %in% c('SNP','A1','A2')]
+num_cols<-names(GWAS)[!(names(GWAS) %in% c('SNP','A1','A2'))]
+GWAS[, (chr_cols) := lapply(.SD, as.character), .SDcols = chr_cols]
+GWAS[, (num_cols) := lapply(.SD, as.numeric), .SDcols = num_cols]
 
 #####
 # Insert IUPAC codes into target

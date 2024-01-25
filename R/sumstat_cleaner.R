@@ -383,10 +383,14 @@ remove_ambig<-function(dat){
 #' flipped_snps <- detect_strand_flip(iupac_codes$target, iupac_codes$reference)
 detect_strand_flip<-function(targ, ref){
   flipped<-(
-    (targ == 'R' & ref == 'Y') |
-      (targ == 'Y' & ref == 'R') |
-      (targ == 'K' & ref == 'M') |
-      (targ == 'M' & ref == 'K'))
+      (!is.na(targ) & !is.na(ref)) &
+      (
+        (targ == 'R' & ref == 'Y') |
+        (targ == 'Y' & ref == 'R') |
+        (targ == 'K' & ref == 'M') |
+        (targ == 'M' & ref == 'K')
+      )
+    )
 
   return(flipped)
 }

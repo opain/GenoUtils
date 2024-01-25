@@ -40,6 +40,7 @@ opt_to_df<-function(opt){
 #' start_time <- Sys.time()
 #' log_header(paste0(tempdir(),"/logfile.log"), opt_list, "script_name.R", start_time)
 log_header <- function(log_file, opt, script, start.time) {
+  options(width = 1000)
   sink(file = log_file, append = FALSE)
   cat0(
     '#################################################################\n',
