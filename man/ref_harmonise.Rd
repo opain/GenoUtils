@@ -4,7 +4,7 @@
 \alias{ref_harmonise}
 \title{Harmonize Target Data with Reference Data}
 \usage{
-ref_harmonise(targ, ref_rds, population, log_file = NULL)
+ref_harmonise(targ, ref_rds, population, log_file = NULL, chr = 1:22)
 }
 \arguments{
 \item{targ}{A data frame of target SNP data to be harmonized.}
@@ -14,6 +14,8 @@ ref_harmonise(targ, ref_rds, population, log_file = NULL)
 \item{population}{The reference population matching the GWAS sample. This option is used to determine ancestry-matched reference allele frequencies.}
 
 \item{log_file}{An optional path to a log file where messages will be recorded.}
+
+\item{chr}{An optional numeric vector indicating chromosomes to be processed.}
 }
 \value{
 A harmonized data frame of target SNP data.

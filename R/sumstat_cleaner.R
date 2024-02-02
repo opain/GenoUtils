@@ -403,6 +403,7 @@ detect_strand_flip<-function(targ, ref){
 #' @param ref_rds The path to reference data files in RDS format.
 #' @param population The reference population matching the GWAS sample. This option is used to determine ancestry-matched reference allele frequencies.
 #' @param log_file An optional path to a log file where messages will be recorded.
+#' @param chr An optional numeric vector indicating chromosomes to be processed.
 #'
 #' @return A harmonized data frame of target SNP data.
 #' @export
@@ -415,7 +416,7 @@ detect_strand_flip<-function(targ, ref){
 #'   system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
 #' harmonised_data <- ref_harmonise(clean_sumstats_1, reference_data_path, 'EUR')
 #' print(head(harmonised_data))
-ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
+ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
   # Convert data.frame to data.table if necessary
   if (is.data.frame(targ)) {
     targ <- data.table::as.data.table(targ)
@@ -426,16 +427,16 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
     targ$IUPAC <- snp_iupac(targ$A1, targ$A2)
   }
 
-  ref_22<-readRDS(file = paste0(ref_rds, 22, '.rds'))
-  if(!(all(c('CHR','A1','A2','IUPAC') %in% names(ref_22)) & any(grepl('BP_GRCh', names(ref_22))))){
+  ref_tmp<-readRDS(file = paste0(ref_rds, max(chr), '.rds'))
+  if(!(all(c('CHR','A1','A2','IUPAC') %in% names(ref_tmp)) & any(grepl('BP_GRCh', names(ref_tmp))))){
     stop('CHR, A1, A2, IUPAC and BP coordinates must be present in ref_rds files.\n')
   }
 
-  if(!(any(grepl('REF.FRQ', names(ref_22))))){
+  if(!(any(grepl('REF.FRQ', names(ref_tmp))))){
     stop('There are no REF.FRQ.<POP> columns.\n')
   }
 
-  ref_pops <- gsub('REF.FRQ.', '', names(ref_22)[grepl('REF.FRQ', names(ref_22))])
+  ref_pops <- gsub('REF.FRQ.', '', names(ref_tmp)[grepl('REF.FRQ', names(ref_tmp))])
   if(!(population %in% ref_pops)){
     stop(paste0('Specified reference population must be one of the following: ', paste0(ref_pops, collapse=', '),'\n'))
   }
@@ -453,7 +454,6 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
 
   targ_matched<-NULL
   flip_logical_all<-NULL
-  chrs<-c(1:22)
   target_build<-NA
 
   if(chr_bp_avail){
@@ -463,12 +463,12 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
     # Determine build
     ###
 
-    target_build <- detect_build( ref = ref_22,
-                                  targ = targ[targ$CHR == 22,],
+    target_build <- detect_build( ref = ref_tmp,
+                                  targ = targ[targ$CHR == max(chr),],
                                   log_file = log_file)
 
     if(!is.na(target_build)){
-      for(i in chrs){
+      for(i in chr){
 
         # Read reference data
         ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))
@@ -523,7 +523,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL){
   if(is.na(target_build) & rsid_avail){
     log_add(log_file = log_file, message = 'Using SNP, A1 and A2 to merge with the reference.')
 
-    for(i in chrs){
+    for(i in chr){
 
       # Read reference data
       ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))

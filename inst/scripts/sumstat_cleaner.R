@@ -21,7 +21,9 @@ option_list = list(
   make_option("--maf_diff", action="store", default=0.2, type='numeric',
               help="Difference between reference and reported MAF threshold [optional]"),
   make_option("--output", action="store", default='./Output', type='character',
-              help="Path for output files [optional]")
+              help="Path for output files [optional]"),
+  make_option("--test", action="store", default=NA, type='character',
+              help="Specify number of SNPs to include [optional]")
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
@@ -34,6 +36,15 @@ library(data.table)
 log_file <- paste0(opt$output,'.log')
 log_header(log_file = log_file, opt = opt, script = 'sumstat_cleaner.R', start.time = start.time)
 
+# If testing, change CHROMS to chr value
+if(!is.na(opt$test) && opt$test == 'NA'){
+  opt$test<-NA
+}
+
+if(!is.na(opt$test)){
+  CHROMS <- as.numeric(gsub('chr','',opt$test))
+}
+
 #####
 # Read in sumstats
 #####
@@ -43,7 +54,6 @@ log_add(log_file = log_file, message = 'Reading in sumstats.')
 GWAS <- fread(opt$sumstats)
 
 log_add(log_file = log_file, message = paste0('GWAS contains ',nrow(GWAS),' variants.'))
-
 
 #####
 # Interpret and update header
@@ -55,6 +65,10 @@ GWAS <- format_header(sumstats = GWAS, log_file = log_file)
 # Insert N using opt$N if N data isn't already present
 if(!(all(c('N_CAS','N_CON') %in% names(GWAS)) | 'N' %in% names(GWAS))){
   GWAS$N <- opt$n
+}
+
+if(any(names(GWAS) == 'CHR')){
+  GWAS <- GWAS[GWAS$CHR %in% CHROMS,]
 }
 
 #####
@@ -97,7 +111,7 @@ log_add(log_file = log_file, message = paste0('After removal of variants that ar
 #####
 # We identify variants present in GWAS and reference, insert missing data (SNP, CHR, BP), and REF.FREQ
 
-GWAS <- ref_harmonise(targ = GWAS, ref_rds = opt$ref_chr, population = opt$population, log_file = log_file)
+GWAS <- ref_harmonise(targ = GWAS, ref_rds = opt$ref_chr, population = opt$population, log_file = log_file, chr = CHROMS)
 
 #####
 # Remove SNPs with INFO < opt$info

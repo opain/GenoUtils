@@ -289,3 +289,12 @@ ss_head_dict<-list(
     "HM_POS"
   )
 )
+
+#' Default range for chromosome numbers
+#'
+#' A numeric vector containing chromosome numbers 1 to 22.
+#' @export
+#'
+# Set range of chromosome numbers to use by default
+CHROMS <- 1:22
+
