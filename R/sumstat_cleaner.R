@@ -479,13 +479,14 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         # Rename columns prior to merging with target
         names(ref_i)<-paste0('REF.',names(ref_i))
         names(ref_i)[names(ref_i) == paste0('REF.REF.FRQ.',population)]<-'REF.FREQ'
-        ref_i<-ref_i[, c('REF.CHR','REF.SNP',paste0('REF.BP_',target_build),'REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
+        ref_i$BP<-ref_i[[paste0('REF.BP_',target_build)]]
+        ref_i<-ref_i[, c('REF.CHR','REF.SNP','BP','REF.BP_GRCh37','REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
 
         # Subset chromosome i from target
         targ_i<-targ[targ$CHR == i,]
 
         # Merge target and reference by BP
-        ref_target<-merge(targ_i, ref_i, by.x='BP', by.y=paste0('REF.BP_',target_build))
+        ref_target<-merge(targ_i, ref_i, by='BP')
 
         # Identify targ-ref strand flips, and flip target
         flip_logical<-detect_strand_flip(targ = ref_target$IUPAC, ref = ref_target$REF.IUPAC)
@@ -503,9 +504,10 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         # Flip REF.FREQ if alleles are swapped
         matched$REF.FREQ[matched$A1 != matched$REF.A1]<-1-matched$REF.FREQ[matched$A1 != matched$REF.A1]
 
-        # Retain reference SNP and REF.FREQ data
-        matched<-matched[, names(matched) %in% c('CHR','BP','REF.SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P'), with=F]
+        # Retain reference SNP, REF.FREQ, and REF.BP_GRCh37 data
+        matched<-matched[, names(matched) %in% c('CHR','REF.BP_GRCh37','REF.SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P'), with=F]
         names(matched)[names(matched) == 'REF.SNP']<-'SNP'
+        names(matched)[names(matched) == 'REF.BP_GRCh37']<-'BP'
 
         targ_matched<-rbind(targ_matched, matched)
       }
