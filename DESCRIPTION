@@ -8,7 +8,7 @@ Description: This package contains functions that are used by the GenoDisc and G
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 URL: https://github.com/opain/GenoUtils
 BugReports: https://github.com/opain/GenoUtils/issues
 Suggests: 

@@ -194,7 +194,7 @@ if(file.exists(paste0(opt$output,'.gz'))){
   system(paste0(paste0('rm ',opt$output,'.gz')))
 }
 
-fwrite(GWAS, paste0(opt$output,'.gz'), sep='\t')
+fwrite(GWAS, paste0(opt$output,'.gz'), sep='\t', na='NA')
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
