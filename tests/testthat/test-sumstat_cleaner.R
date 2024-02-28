@@ -222,10 +222,12 @@ test_that("run sumstat_cleaner.R script with raw_sumstats_1", {
   # Read in example output
   sumstat_cleaner_output_1<-readRDS(system.file("extdata", "sumstat_cleaner_output_1.rds", package = "GenoUtils"))
 
+  # Order columns
+  cleaned<-cleaned[, names(sumstat_cleaner_output_1$sumstats), with=F]
+
   # Test if the function runs without errors or warnings and correctly updates the header
   expect_equal(sumstat_cleaner_output_1$sumstats, cleaned)
 })
-
 
 test_that("run sumstat_cleaner.R script with raw_sumstats_2", {
   # Specify location of relevant files

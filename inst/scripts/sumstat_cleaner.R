@@ -180,10 +180,10 @@ GWAS<-avoid_gc(targ = GWAS, log_file = log_file)
 GWAS <- insert_se(targ = GWAS, log_file = log_file)
 
 #####
-# Remove SNPs with SE == 0
+# Remove SNPs with SE == 0 or Inf
 #####
 
-GWAS<-GWAS[GWAS$SE != 0,]
+GWAS<-GWAS[GWAS$SE != 0 & !(is.infinite(GWAS$SE)),]
 log_add(log_file = log_file, message = paste0('After removal of SNPs with SE == 0, ',nrow(GWAS),' variants remain.'))
 
 #####
