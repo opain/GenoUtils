@@ -169,7 +169,8 @@ ss_head_dict<-list(
     "SAMPLESIZE",
     "SAMPLE_SIZE",
     "TOTAL_SAMPLE_SIZE",
-    "TOTALSAMPLESIZE"
+    "TOTALSAMPLESIZE",
+    "N_TOTAL_SUM"
   ),
   N_CAS = c(
     "N_CAS",
