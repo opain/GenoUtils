@@ -252,6 +252,80 @@ test_that("run sumstat_cleaner.R script with raw_sumstats_2", {
   expect_equal(sumstat_cleaner_output_2$sumstats, cleaned)
 })
 
+test_that("run sumstat_cleaner.R script with raw_sumstats_2 with allele codes in lower case", {
+  # Specify location of relevant files
+  rscript_path <- file.path(Sys.getenv("R_HOME"), "bin", "Rscript")
+  script_path <- system.file("scripts", "sumstat_cleaner.R", package = "GenoUtils")
+  ref_path <- gsub( '22.rds','', system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
+  tmp_dir<-tempdir()
+
+  # Convert A1 and A2 to lower case
+  raw_sumstats_2$A1<-tolower(raw_sumstats_2$A1)
+  raw_sumstats_2$A2<-tolower(raw_sumstats_2$A2)
+
+  # Write test GWAS sumstats as temporary file on disk
+  fwrite(raw_sumstats_2, paste0(tmp_dir, '/raw.txt'), sep=' ', na='NA', row.names=F)
+
+  # Run sumstat_cleaner.R with test data
+  system(paste0(rscript_path, " ", script_path ," --sumstats ",tmp_dir, "/raw.txt --ref_chr ",ref_path," --population EUR --output ", tmp_dir,"/clean"))
+
+  # Read in cleaned sumstats
+  cleaned<-fread(paste0(tmp_dir,"/clean.gz"))
+
+  # Read in example output
+  sumstat_cleaner_output_2<-readRDS(system.file("extdata", "sumstat_cleaner_output_2.rds", package = "GenoUtils"))
+
+  # Test if the function runs without errors or warnings and correctly updates the header
+  expect_equal(sumstat_cleaner_output_2$sumstats, cleaned)
+})
+
+test_that("run sumstat_cleaner.R script with raw_sumstats_2 when N is not specified", {
+  # Specify location of relevant files
+  rscript_path <- file.path(Sys.getenv("R_HOME"), "bin", "Rscript")
+  script_path <- system.file("scripts", "sumstat_cleaner.R", package = "GenoUtils")
+  ref_path <- gsub( '22.rds','', system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
+  tmp_dir<-tempdir()
+
+  # Remove N column
+  raw_sumstats_2$N<-NULL
+
+  # Write test GWAS sumstats as temporary file on disk
+  fwrite(raw_sumstats_2, paste0(tmp_dir, '/raw.txt'), sep=' ', na='NA', row.names=F)
+
+  # Run sumstat_cleaner.R with test data
+  status <- system(paste0(rscript_path, " ", script_path ," --sumstats ",tmp_dir, "/raw.txt --ref_chr ",ref_path," --population EUR --output ", tmp_dir,"/clean"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+
+  # Expect that the status is not 0, indicating an error
+  expect_true(status != 0, info = "The command should fail and return a non-zero exit status.")
+})
+
+test_that("run sumstat_cleaner.R script with raw_sumstats_2 when N is provided as parameter", {
+  # Specify location of relevant files
+  rscript_path <- file.path(Sys.getenv("R_HOME"), "bin", "Rscript")
+  script_path <- system.file("scripts", "sumstat_cleaner.R", package = "GenoUtils")
+  ref_path <- gsub( '22.rds','', system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
+  tmp_dir<-tempdir()
+
+  # Remove N column
+  raw_sumstats_2$N<-NULL
+
+  # Write test GWAS sumstats as temporary file on disk
+  fwrite(raw_sumstats_2, paste0(tmp_dir, '/raw.txt'), sep=' ', na='NA', row.names=F)
+
+  # Run sumstat_cleaner.R with test data
+  system(paste0(rscript_path, " ", script_path ," --sumstats ",tmp_dir, "/raw.txt --ref_chr ",ref_path," --population EUR --n 10000 --output ", tmp_dir,"/clean"))
+
+  # Read in cleaned sumstats
+  cleaned<-fread(paste0(tmp_dir,"/clean.gz"))
+
+  # Read in example output
+  sumstat_cleaner_output_2<-readRDS(system.file("extdata", "sumstat_cleaner_output_2.rds", package = "GenoUtils"))
+  sumstat_cleaner_output_2$sumstats$N<-10000
+
+  # Test if the function runs without errors or warnings and correctly updates the header
+  expect_equal(sumstat_cleaner_output_2$sumstats, cleaned)
+})
+
 test_that("run sumstat_cleaner.R script with raw_sumstats_2 and test restricted to chr22", {
   # Specify location of relevant files
   rscript_path <- file.path(Sys.getenv("R_HOME"), "bin", "Rscript")

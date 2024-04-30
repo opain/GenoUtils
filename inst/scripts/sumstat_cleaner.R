@@ -64,7 +64,11 @@ GWAS <- format_header(sumstats = GWAS, log_file = log_file)
 
 # Insert N using opt$N if N data isn't already present
 if(!(all(c('N_CAS','N_CON') %in% names(GWAS)) | 'N' %in% names(GWAS))){
-  GWAS$N <- opt$n
+  if(is.na(opt$n)){
+    stop("N (sample size) information must be provided.\n")
+  } else {
+    GWAS$N <- opt$n
+  }
 }
 
 if(any(names(GWAS) == 'CHR')){
@@ -97,6 +101,10 @@ GWAS[, (num_cols) := lapply(.SD, as.numeric), .SDcols = num_cols]
 #####
 # Insert IUPAC codes into target
 #####
+
+# Convert A1 and A2 columns to uppercase if not already
+GWAS$A1 <- toupper(GWAS$A1)
+GWAS$A2 <- toupper(GWAS$A2)
 
 # Insert IUPAC codes into target
 GWAS$IUPAC<-snp_iupac(GWAS$A1, GWAS$A2)
