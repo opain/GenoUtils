@@ -236,6 +236,7 @@ ss_head_dict<-list(
     "F_U"
   ),
   CHR = c(
+    "#CHR",
     "CHR",
     "CH",
     "CHROMOSOME",

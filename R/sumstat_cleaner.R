@@ -160,6 +160,24 @@ format_header<-function(sumstats, log_file = NULL){
   # Update sumstat header
   names(sumstats)<-header_interpretation$Interpreted[as.logical(header_interpretation$Keep)]
 
+  # Check whether SNP contains RSIDs or is CHR:BP:A1:A2
+  if('SNP' %in% names(sumstats)){
+    if(all(grepl("^\\d+:[0-9]+:.+:.+$", sumstats$SNP))){
+      log_add(log_file = log_file, message = 'SNP column contains CHR:BP:A1:A2 information.')
+      snp_dat<-data.table(do.call(rbind, strsplit(sumstats$SNP, ':')))
+      if(!('CHR' %in% names(sumstats))){
+        log_add(log_file = log_file, message = 'CHR information extracted from SNP column.')
+        sumstats$CHR<-snp_dat$V1
+      }
+      if(!('BP' %in% names(sumstats))){
+        log_add(log_file = log_file, message = 'BP information extracted from SNP column.')
+        sumstats$BP<-snp_dat$V2
+      }
+      log_add(log_file = log_file, message = 'SNP column has been removed.')
+      sumstats$SNP <- NULL
+    }
+  }
+
   return(sumstats)
 }
 
