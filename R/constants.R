@@ -170,7 +170,8 @@ ss_head_dict<-list(
     "SAMPLE_SIZE",
     "TOTAL_SAMPLE_SIZE",
     "TOTALSAMPLESIZE",
-    "N_TOTAL_SUM"
+    "N_TOTAL_SUM",
+    "OBS_CT"
   ),
   N_CAS = c(
     "N_CAS",
@@ -223,7 +224,8 @@ ss_head_dict<-list(
     "EAF_HRC",
     "EAF_UKB",
     "EFFECT_ALLELE_FREQUENCY",
-    "HM_EFFECT_ALLELE_FREQUENCY"
+    "HM_EFFECT_ALLELE_FREQUENCY",
+    "A1_FREQ"
   ),
   FRQ_A = c(
     "FRQ_A",
@@ -237,6 +239,7 @@ ss_head_dict<-list(
   ),
   CHR = c(
     "#CHR",
+    "#CHROM",
     "CHR",
     "CH",
     "CHROMOSOME",
