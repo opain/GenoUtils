@@ -4,7 +4,7 @@
 \alias{detect_build}
 \title{Detect the Genome Build of Target Using Reference Chromosome and Base Pair Information}
 \usage{
-detect_build(ref, targ, log_file = NULL)
+detect_build(ref, targ, log_file = NULL, overlap_thresh = 0.2)
 }
 \arguments{
 \item{ref}{A data frame containing reference SNP data with chromosome, base pair, and other relevant information.}
@@ -12,6 +12,8 @@ detect_build(ref, targ, log_file = NULL)
 \item{targ}{A data frame containing target SNP data to be compared against the reference.}
 
 \item{log_file}{An optional path to a log file where messages will be recorded.}
+
+\item{overlap_thresh}{A numeric value specifying the minimum overlap proportion required to consider a genome build as a good match. The overlap is typically expressed as the fraction of shared SNPs between the target and reference datasets. A higher threshold ensures stricter matching, while a lower threshold allows for more flexibility when data quality or completeness is lower.}
 }
 \value{
 Returns the detected genome build as a character string, or NA if the build cannot be determined.
