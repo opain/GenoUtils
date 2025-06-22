@@ -489,8 +489,9 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
     # Determine build
     ###
 
+    ref_tmp<-readRDS(file = paste0(ref_rds, max(targ$CHR), '.rds'))
     target_build <- detect_build( ref = ref_tmp,
-                                  targ = targ[targ$CHR == max(chr),],
+                                  targ = targ[targ$CHR == max(targ$CHR),],
                                   log_file = log_file)
 
     if(!is.na(target_build)){
