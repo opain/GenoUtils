@@ -260,7 +260,6 @@ snp_iupac<-function(x=NA, y=NA){
 #' @param ref A data frame containing reference SNP data with chromosome, base pair, and other relevant information.
 #' @param targ A data frame containing target SNP data to be compared against the reference.
 #' @param log_file An optional path to a log file where messages will be recorded.
-#' @param overlap_thresh A numeric value specifying the minimum overlap proportion required to consider a genome build as a good match. The overlap is typically expressed as the fraction of shared SNPs between the target and reference datasets. A higher threshold ensures stricter matching, while a lower threshold allows for more flexibility when data quality or completeness is lower.
 #'
 #' @return Returns the detected genome build as a character string, or NA if the build cannot be determined.
 #' @export
@@ -271,7 +270,7 @@ snp_iupac<-function(x=NA, y=NA){
 #' ref <- readRDS(paste0(reference_data_path,'22.rds'))
 #' targ <- clean_sumstats_1[clean_sumstats_1$CHR == 22,]
 #' detected_build <- detect_build(ref, targ)
-detect_build<-function(ref, targ, log_file = NULL, overlap_thresh=0.2){
+detect_build<-function(ref, targ, log_file = NULL){
   # Convert data.frame to data.table if necessary
   if (is.data.frame(ref)) {
     ref <- data.table::as.data.table(ref)
@@ -320,9 +319,7 @@ detect_build<-function(ref, targ, log_file = NULL, overlap_thresh=0.2){
   best_build <- build_overlap[which.max(build_overlap$overlap_target), ]
 
   # Set a threshold where either the target or reference overlap is greater than 10%
-  if (best_build$overlap_target > overlap_thresh | best_build$overlap_ref > overlap_thresh) {
-    target_build <- paste0('GRCh', best_build$build)
-  }
+  target_build <- paste0('GRCh', best_build$build)
 
   return(target_build)
 }
