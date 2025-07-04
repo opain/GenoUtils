@@ -850,6 +850,12 @@ avoid_gc<-function(targ, log_file = NULL){
 
   if(sum(names(targ) == 'SE') == 1){
     targ$Z<-targ$BETA/targ$SE
+
+    if (median(abs(targ$Z), na.rm = TRUE) > 50) {
+      log_add(log_file = log_file, message = "Implausibly large Z-scores detected. Check the BETA/OR and SE columns.")
+      stop("ERROR: Implausibly large Z-scores detected — Check the BETA/OR and SE columns.")
+    }
+
     targ$P_check<-2*pnorm(-abs(targ$Z))
     targ$Z<-NULL
 
