@@ -497,9 +497,6 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         # Read reference data
         ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))
 
-        # Retain only non-ambiguous SNPs
-        ref_i<-remove_ambig(ref_i)
-
         # Rename columns prior to merging with target
         names(ref_i)<-paste0('REF.',names(ref_i))
         names(ref_i)[names(ref_i) == paste0('REF.REF.FRQ.',population)]<-'REF.FREQ'
@@ -529,7 +526,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         matched$REF.FREQ[matched$A1 != matched$REF.A1]<-1-matched$REF.FREQ[matched$A1 != matched$REF.A1]
 
         # Retain reference SNP, REF.FREQ, and REF.BP_GRCh37 data
-        matched<-matched[, names(matched) %in% c('CHR','REF.BP_GRCh37','REF.SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P'), with=F]
+        matched<-matched[, names(matched) %in% c('CHR','REF.BP_GRCh37','REF.SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P','IUPAC'), with=F]
         names(matched)[names(matched) == 'REF.SNP']<-'SNP'
         names(matched)[names(matched) == 'REF.BP_GRCh37']<-'BP'
 
@@ -553,9 +550,6 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
 
       # Read reference data
       ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))
-
-      # Retain only non-ambiguous SNPs
-      ref_i<-remove_ambig(ref_i)
 
       # Rename columns prior to merging with target
       names(ref_i)<-paste0('REF.',names(ref_i))
@@ -582,7 +576,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
       matched$REF.FREQ[matched$A1 != matched$REF.A1]<-1-matched$REF.FREQ[matched$A1 != matched$REF.A1]
 
       # Retain reference CHR and BP_GRCh37 data
-      matched<-matched[, names(matched) %in% c('REF.CHR','REF.BP_GRCh37','SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P'), with=F]
+      matched<-matched[, names(matched) %in% c('REF.CHR','REF.BP_GRCh37','SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P','IUPAC'), with=F]
       names(matched)[names(matched) == 'REF.CHR']<-'CHR'
       names(matched)[names(matched) == 'REF.BP_GRCh37']<-'BP'
 
@@ -591,7 +585,16 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
   }
 
   log_add(log_file = log_file, message = paste0('After matching variants to the reference, ',nrow(targ_matched),' variants remain.'))
-  log_add(log_file = log_file, message = paste0(sum(flip_logical_all), ' variants were flipped to match reference.'))
+
+  # Report flipping and strand ambiguity
+  if(sum(flip_logical_all) > 0){
+    log_add(log_file = log_file, message = paste0(sum(flip_logical_all), ' non-ambiguous variants were flipped to match reference.'))
+    if(sum(targ_matched$IUPAC %in% c('S','W')) > 0){
+      log_add(log_file = log_file, message = paste0('WARNING: ambiguous variants are present, but non-ambiguous variants required some flipping, indicating GWAS and reference data are not consistently on the same strand.'))
+    }
+  } else {
+    log_add(log_file = log_file, message = paste0('No variants were flipped, indicating GWAS and reference are consistently on the same strand.'))
+  }
 
   return(targ_matched)
 }

@@ -109,10 +109,9 @@ GWAS$A2 <- toupper(GWAS$A2)
 # Insert IUPAC codes into target
 GWAS$IUPAC<-snp_iupac(GWAS$A1, GWAS$A2)
 
-# Retain only non-ambiguous SNPs
-GWAS <- remove_ambig(GWAS)
-
-log_add(log_file = log_file, message = paste0('After removal of variants that are not SNPs or are ambiguous, ',nrow(GWAS),' variants remain.'))
+# Retains only SNPs
+log_add(log_file = log_file, message = paste0('After removal of variants that are not SNPs, ',nrow(GWAS),' variants remain.'))
+log_add(log_file = log_file, message = paste0('GWAS contains ', sum(GWAS$IUPAC %in% c('S','W')), ' ambiguous variants.'))
 
 #####
 # Harmonise per chromosome with reference
