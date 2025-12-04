@@ -90,7 +90,8 @@ ss_head_dict<-list(
     "EFFECTA1",
     "EFFECT_NW",
     "HM_BETA",
-    "LOG_ODDS"
+    "LOG_ODDS",
+    "LOGOR"
   ),
   OR = c(
     "OR",
