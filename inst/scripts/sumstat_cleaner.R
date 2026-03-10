@@ -148,6 +148,22 @@ GWAS <- discord_maf(targ = GWAS, thresh = opt$maf_diff, log_file = log_file, plo
 # Remove SNPs with out-of-bounds p-values
 #####
 
+if(!any(names(GWAS) == 'P')){
+  if(any(names(GWAS) == 'Z')){
+    GWAS$P <- 2 * pnorm(-abs(GWAS$Z))
+    log_add(log_file = log_file, message = 'P inserted based on Z.')
+  } else {
+    if(!any(names(GWAS) == 'BETA')){
+      GWAS$BETA <- log(GWAS$OR)
+      log_add(log_file = log_file, message = "BETA inserted based on log(OR).")
+    }
+    GWAS$Z <- GWAS$BETA/GWAS$SE
+    log_add(log_file = log_file, message = "Z inserted based on BETA and SE.")
+    GWAS$P <- 2 * pnorm(-abs(GWAS$Z))
+    log_add(log_file = log_file, message = 'P inserted based on Z.')
+  }
+}
+
 GWAS<-GWAS[GWAS$P <= 1 & GWAS$P > 0,]
 log_add(log_file = log_file, message = paste0('After removal of SNPs with out-of-bound P values, ',nrow(GWAS),' variants remain.'))
 

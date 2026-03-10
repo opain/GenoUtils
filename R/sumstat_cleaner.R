@@ -142,6 +142,10 @@ format_header<-function(sumstats, log_file = NULL){
     messages <- c(messages, "Error: Either N, or both N_CAS and N_CON must be present.")
     error<-T
   }
+  if(all(!(c('P','Z') %in% header_interpretation$Interpreted)) & all(!(c('BETA','OR','SE') %in% header_interpretation$Interpreted))){
+    messages <- c(messages, "Error: Either P, Z, or both BETA/OR and SE must be present.")
+    error<-T
+  }
   if(any(c('FRQ_A','FRQ_U') %in% header_interpretation$Interpreted) & sum(c('FRQ_A','FRQ_U') %in% header_interpretation$Interpreted) == 1){
     messages <- c(messages, "Warning: Both FRQ_A and FRQ_U must be present for either to be considered.")
   }
