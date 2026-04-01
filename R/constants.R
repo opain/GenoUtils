@@ -226,7 +226,8 @@ ss_head_dict<-list(
     "EAF_UKB",
     "EFFECT_ALLELE_FREQUENCY",
     "HM_EFFECT_ALLELE_FREQUENCY",
-    "A1_FREQ"
+    "A1_FREQ",
+    "EAFREQ"
   ),
   FRQ_A = c(
     "FRQ_A",
