@@ -232,12 +232,14 @@ ss_head_dict<-list(
   FRQ_A = c(
     "FRQ_A",
     "FREQ_A",
-    "F_A"
+    "F_A",
+    "FCAS"
   ),
   FRQ_U = c(
     "FRQ_U",
     "FREQ_U",
-    "F_U"
+    "F_U",
+    "FCON"
   ),
   CHR = c(
     "#CHR",

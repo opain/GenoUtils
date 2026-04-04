@@ -138,7 +138,7 @@ format_header<-function(sumstats, log_file = NULL){
     messages <- c(messages, "Error: Either SNP, or CHR and BP, must be present.")
     error<-T
   }
-  if(any(c('N_CAS','N_CON') %in% header_interpretation$Interpreted) & sum(c('N_CAS','N_CON') %in% header_interpretation$Interpreted) == 1 & !('N' %in% names(sumstats))){
+  if(any(c('N_CAS','N_CON') %in% header_interpretation$Interpreted) & sum(c('N_CAS','N_CON') %in% header_interpretation$Interpreted) == 1 & !('N' %in% header_interpretation$Interpreted)){
     messages <- c(messages, "Error: Either N, or both N_CAS and N_CON must be present.")
     error<-T
   }
