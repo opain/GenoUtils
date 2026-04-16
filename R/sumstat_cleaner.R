@@ -31,6 +31,20 @@ head_interp<-function(sub_ss){
   }
   int_header[!(toupper(int_header) %in% unlist(ss_head_dict))]<-NA
 
+  # For columns interpreted as numeric fields, check values are actually numeric
+  numeric_fields <- c('CHR','BP','P','OR','BETA','Z','SE','N','N_CAS','N_CON','NEF','FREQ','FRQ_A','FRQ_U','INFO')
+  non_numeric_cols <- character(0)
+  for(j in seq_along(int_header)){
+    if(!is.na(int_header[j]) && int_header[j] %in% numeric_fields){
+      col_vals <- sub_ss_comp[[sub_header_comp[j]]]
+      numeric_vals <- suppressWarnings(as.numeric(as.character(col_vals)))
+      if(all(is.na(numeric_vals))){
+        non_numeric_cols <- c(non_numeric_cols, sub_header_comp[j])
+        int_header[j] <- NA
+      }
+    }
+  }
+
   # Show original and interpreted header
   header_interp <- data.frame(Original = sub_header_comp,
                               Interpreted = int_header)
@@ -45,6 +59,7 @@ head_interp<-function(sub_ss){
   header_interp$Reason<-NA
   header_interp$Reason[!(int_header %in% names(ss_head_dict))]<-'Not recognised'
   header_interp$Reason[duplicated(int_header)]<-'Duplicated'
+  header_interp$Reason[header_interp$Original %in% non_numeric_cols] <- 'First 1000 rows non-numeric'
 
   # Show columns ignored due to missingness
   for(i in sub_header[!(sub_header %in% header_interp$Original)]){
