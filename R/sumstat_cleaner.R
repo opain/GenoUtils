@@ -173,11 +173,14 @@ format_header<-function(sumstats, log_file = NULL){
     }
   }
 
-  # Remove columns that are not interpreted
-  sumstats <- sumstats[, as.logical(header_interpretation$Keep), with=F]
+  # Remove columns that are not interpreted (in-place to avoid copying)
+  drop_cols <- names(sumstats)[!as.logical(header_interpretation$Keep)]
+  if(length(drop_cols) > 0){
+    sumstats[, (drop_cols) := NULL]
+  }
 
   # Update sumstat header
-  names(sumstats)<-header_interpretation$Interpreted[as.logical(header_interpretation$Keep)]
+  setnames(sumstats, names(sumstats), header_interpretation$Interpreted[as.logical(header_interpretation$Keep)])
 
   # Check whether SNP contains RSIDs or is CHR:BP:A1:A2
   if('SNP' %in% names(sumstats)){
@@ -482,6 +485,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
   if(!(population %in% ref_pops)){
     stop(paste0('Specified reference population must be one of the following: ', paste0(ref_pops, collapse=', '),'\n'))
   }
+  rm(ref_tmp); gc()
 
   # Check whether CHR and BP information are present
   chr_bp_avail<-sum(c('CHR','BP') %in% names(targ)) == 2
@@ -509,9 +513,17 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
     target_build <- detect_build( ref = ref_tmp,
                                   targ = targ[targ$CHR == max(targ$CHR),],
                                   log_file = log_file)
+    rm(ref_tmp); gc()
 
     if(!is.na(target_build)){
-      for(i in chr){
+      # Pre-split target by chromosome so we can free memory as we go
+      targ_by_chr<-split(targ, targ$CHR)
+      rm(targ); gc()
+
+      matched_list<-vector("list", length(chr))
+
+      for(idx in seq_along(chr)){
+        i<-chr[idx]
 
         # Read reference data
         ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))
@@ -522,11 +534,13 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         ref_i$BP<-ref_i[[paste0('REF.BP_',target_build)]]
         ref_i<-ref_i[, c('REF.CHR','REF.SNP','BP','REF.BP_GRCh37','REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
 
-        # Subset chromosome i from target
-        targ_i<-targ[targ$CHR == i,]
+        # Extract and free this chromosome's target data
+        targ_i<-targ_by_chr[[as.character(i)]]
+        targ_by_chr[[as.character(i)]]<-NULL
 
         # Merge target and reference by BP
         ref_target<-merge(targ_i, ref_i, by='BP')
+        rm(targ_i, ref_i)
 
         # Identify targ-ref strand flips, and flip target
         flip_logical<-detect_strand_flip(targ = ref_target$IUPAC, ref = ref_target$REF.IUPAC)
@@ -540,6 +554,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         # Identify SNPs that have matched IUPAC
         matched<-ref_target[ref_target$IUPAC == ref_target$REF.IUPAC,]
         matched<-rbind(matched, flipped)
+        rm(ref_target, flipped)
 
         # Flip REF.FREQ if alleles are swapped
         matched$REF.FREQ[matched$A1 != matched$REF.A1]<-1-matched$REF.FREQ[matched$A1 != matched$REF.A1]
@@ -549,8 +564,12 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         names(matched)[names(matched) == 'REF.SNP']<-'SNP'
         names(matched)[names(matched) == 'REF.BP_GRCh37']<-'BP'
 
-        targ_matched<-rbind(targ_matched, matched)
+        matched_list[[idx]]<-matched
       }
+
+      rm(targ_by_chr)
+      targ_matched<-data.table::rbindlist(matched_list)
+      rm(matched_list)
     }
 
     if(is.na(target_build) & !(rsid_avail)){
@@ -565,7 +584,10 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
   if(is.na(target_build) & rsid_avail){
     log_add(log_file = log_file, message = 'Using SNP, A1 and A2 to merge with the reference.')
 
-    for(i in chr){
+    matched_list<-vector("list", length(chr))
+
+    for(idx in seq_along(chr)){
+      i<-chr[idx]
 
       # Read reference data
       ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))
@@ -577,6 +599,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
 
       # Merge target and reference by SNP ID
       ref_target<-merge(targ, ref_i, by.x='SNP', by.y='REF.SNP')
+      rm(ref_i)
 
       # Identify targ-ref strand flips, and flip target
       flip_logical<-detect_strand_flip(targ = ref_target$IUPAC, ref = ref_target$REF.IUPAC)
@@ -590,6 +613,7 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
       # Identify SNPs that have matched IUPAC
       matched<-ref_target[ref_target$IUPAC == ref_target$REF.IUPAC,]
       matched<-rbind(matched, flipped)
+      rm(ref_target, flipped)
 
       # Flip REF.FREQ if alleles are swapped
       matched$REF.FREQ[matched$A1 != matched$REF.A1]<-1-matched$REF.FREQ[matched$A1 != matched$REF.A1]
@@ -599,8 +623,11 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
       names(matched)[names(matched) == 'REF.CHR']<-'CHR'
       names(matched)[names(matched) == 'REF.BP_GRCh37']<-'BP'
 
-      targ_matched<-rbind(targ_matched, matched)
+      matched_list[[idx]]<-matched
     }
+
+    targ_matched<-data.table::rbindlist(matched_list)
+    rm(matched_list)
   }
 
   log_add(log_file = log_file, message = paste0('After matching variants to the reference, ',nrow(targ_matched),' variants remain.'))
