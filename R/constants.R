@@ -211,6 +211,7 @@ ss_head_dict<-list(
     "CEUAF",
     "FREQ1",
     "EAF",
+    "EAFREQ",
     "FREQ1.HAPMAP",
     "FREQALLELE1HAPMAPCEU",
     "FREQ.ALLELE1.HAPMAPCEU",

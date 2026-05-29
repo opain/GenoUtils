@@ -724,6 +724,7 @@ filter_maf<-function(targ, thresh, ref = F, log_file = NULL){
 #' @param thresh A numeric threshold for the absolute frequency difference.
 #' @param log_file Optional; path to a log file where messages will be recorded.
 #' @param plot_file Optional; path to save a plot file visualizing the frequency discrepancies.
+#' @param max_drop_frac Optional; Maximum fraction of variants with discordant FREQ to reference.
 #'
 #' @return A filtered data frame with variants within the specified frequency discrepancy threshold.
 #' @export
@@ -735,8 +736,9 @@ filter_maf<-function(targ, thresh, ref = F, log_file = NULL){
 #' @examples
 #' filtered_data <- discord_maf( targ = clean_sumstats_1,
 #'                               thresh = 0.01,
-#'                               plot_file = paste0(tempdir(),"/plot.png"))
-discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA){
+#'                               plot_file = paste0(tempdir(),"/plot.png"),
+#'                               max_drop_frac = 0.9)
+discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA, max_drop_frac = 0.25){
   # Convert data.frame to data.table if necessary
   if (is.data.frame(targ)) {
     targ <- data.table::as.data.table(targ)
@@ -756,11 +758,27 @@ discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA){
       dev.off()
     }
 
+    n_before <- nrow(targ)
     targ<-targ[targ$diff < thresh,]
     targ$diff<-NULL
 
     log_add(log_file = log_file, message = paste0('After removal of SNPs with absolute MAF difference of < ',thresh,', ',nrow(targ),' variants remain.'))
-  } else {
+
+    drop_frac <- 1 - nrow(targ) / n_before
+    if (n_before > 0 && drop_frac > max_drop_frac) {
+        msg <- paste0(
+            'Discord-MAF filter dropped ', sprintf('%.1f', 100*drop_frac),
+            '% of SNPs (threshold ', sprintf('%.0f', 100*max_drop_frac),
+            '%). This usually indicates the wrong FREQ column was chosen ',
+            '(e.g. MAF instead of effect-allele frequency), a mismatched ',
+            'reference panel or population, or a strand/build mismatch. ',
+            'Inspect ', ifelse(is.na(plot_file), '<MAF plot disabled>', plot_file),
+            ' and the column-interpretation table in the cleaner log.'
+          )
+        log_add(log_file = log_file, message = paste0('ERROR: ', msg))
+        stop(msg, call. = FALSE)
+      }
+    } else {
     log_add(log_file = log_file, message = 'Reported MAF column is not present, so discordance with reference cannot be determined.')
   }
   return(targ)

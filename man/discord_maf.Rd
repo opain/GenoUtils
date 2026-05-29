@@ -4,7 +4,13 @@
 \alias{discord_maf}
 \title{Remove Variants with Discrepancy in Reported and Reference Allele Frequencies}
 \usage{
-discord_maf(targ, thresh, log_file = NULL, plot_file = NA)
+discord_maf(
+  targ,
+  thresh,
+  log_file = NULL,
+  plot_file = NA,
+  max_drop_frac = 0.25
+)
 }
 \arguments{
 \item{targ}{A data frame containing SNP data with both reported and reference allele frequencies.}
@@ -14,6 +20,8 @@ discord_maf(targ, thresh, log_file = NULL, plot_file = NA)
 \item{log_file}{Optional; path to a log file where messages will be recorded.}
 
 \item{plot_file}{Optional; path to save a plot file visualizing the frequency discrepancies.}
+
+\item{max_drop_frac}{Optional; Maximum fraction of variants with discordant FREQ to reference.}
 }
 \value{
 A filtered data frame with variants within the specified frequency discrepancy threshold.
@@ -24,5 +32,6 @@ This function filters out variants from the target dataset where the absolute di
 \examples{
 filtered_data <- discord_maf( targ = clean_sumstats_1,
                               thresh = 0.01,
-                              plot_file = paste0(tempdir(),"/plot.png"))
+                              plot_file = paste0(tempdir(),"/plot.png"),
+                              max_drop_frac = 0.9)
 }
