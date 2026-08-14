@@ -13,6 +13,8 @@ ss_head_dict<-list(
     "SNPTESTID",
     "ID_DBSNP49",
     "RSID",
+    "RS_ID",
+    "RSIDS",
     "ID",
     "RS_NUMBER",
     "MARKER",
@@ -183,6 +185,7 @@ ss_head_dict<-list(
     "NCA",
     "NCASES",
     "CASES",
+    "CASE",
     "CASES_N"
   ),
   N_CON = c(
@@ -195,7 +198,12 @@ ss_head_dict<-list(
     "N_CON",
     "NCONTROLS",
     "CONTROLS",
-    "CONTROLS_N"
+    "CONTROL",
+    "CONTROLS_N",
+    "N_CTRL",
+    "NCTRL",
+    "N_CTRLS",
+    "NCTRLS"
   ),
   #    NEF = c(
   #        "NEF",

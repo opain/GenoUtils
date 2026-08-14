@@ -50,15 +50,16 @@ head_interp<-function(sub_ss){
                               Interpreted = int_header)
 
   # Show columns that are ignored due to be irrelevant, duplicated, or all NA
-  header_interp$Keep<-!(
-    !(int_header %in% names(ss_head_dict)) |
-      duplicated(int_header)
-  )
+  # NA entries are unrecognised columns, not duplicates, so exclude them from the
+  # duplicate check - otherwise the 2nd+ unrecognised column reports 'Duplicated'
+  unrecognised <- !(int_header %in% names(ss_head_dict))
+  dup <- duplicated(int_header) & !is.na(int_header)
+  header_interp$Keep<-!(unrecognised | dup)
 
   # Insert reason it was ignored
   header_interp$Reason<-NA
-  header_interp$Reason[!(int_header %in% names(ss_head_dict))]<-'Not recognised'
-  header_interp$Reason[duplicated(int_header)]<-'Duplicated'
+  header_interp$Reason[unrecognised]<-'Not recognised'
+  header_interp$Reason[dup]<-'Duplicated'
   header_interp$Reason[header_interp$Original %in% non_numeric_cols] <- 'First 1000 rows non-numeric'
 
   # Show columns ignored due to missingness

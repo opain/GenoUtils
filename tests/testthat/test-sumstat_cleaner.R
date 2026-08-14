@@ -58,6 +58,7 @@ test_that("head_interp identifies and excludes unrecognized headers", {
     RSID = c("rs1", "rs2"),
     ALLELE1 = c("A", "G"),
     UNKNOWN_COL = c("X", "Y"),
+    ANOTHER_UNKNOWN = c("X", "Y"),
     ODDS_RATIO = c(1.2, 0.8),
     PVAL = c(0.001, 0.05)
   )
@@ -68,6 +69,39 @@ test_that("head_interp identifies and excludes unrecognized headers", {
   # Test if the function correctly identifies and excludes unrecognized headers
   expect_false("UNKNOWN_COL" %in% header_info$Interpreted)
   expect_true(any(header_info$Original == "UNKNOWN_COL" & header_info$Reason == "Not recognised"))
+
+  # Every unrecognised column must be reported as such, not just the first
+  expect_true(any(header_info$Original == "ANOTHER_UNKNOWN" & header_info$Reason == "Not recognised"))
+})
+
+test_that("head_interp only reports 'Duplicated' for genuine duplicates", {
+  # PVAL and P_VALUE both interpret as P, so the second is a real duplicate
+  mock_data <- data.table(
+    RSID = c("rs1", "rs2"),
+    PVAL = c(0.001, 0.05),
+    P_VALUE = c(0.001, 0.05)
+  )
+
+  header_info <- head_interp(mock_data)
+
+  expect_equal(header_info$Reason[header_info$Original == "P_VALUE"], "Duplicated")
+  expect_equal(as.character(header_info$Keep[header_info$Original == "P_VALUE"]), "FALSE")
+  expect_equal(as.character(header_info$Keep[header_info$Original == "PVAL"]), "TRUE")
+})
+
+test_that("head_interp recognises rs_id, N_case and N_ctrl", {
+  mock_data <- data.table(
+    rs_id = c("rs1", "rs2"),
+    N_case = c(100, 100),
+    N_ctrl = c(900, 900)
+  )
+
+  header_info <- head_interp(mock_data)
+
+  expect_equal(header_info$Interpreted[header_info$Original == "rs_id"], "SNP")
+  expect_equal(header_info$Interpreted[header_info$Original == "N_case"], "N_CAS")
+  expect_equal(header_info$Interpreted[header_info$Original == "N_ctrl"], "N_CON")
+  expect_true(all(header_info$Keep == "TRUE"))
 })
 
 ############
