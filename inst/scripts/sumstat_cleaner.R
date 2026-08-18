@@ -22,6 +22,8 @@ option_list = list(
               help="Difference between reference and reported MAF threshold [optional]"),
   make_option("--output", action="store", default='./Output', type='character',
               help="Path for output files [optional]"),
+  make_option("--munged", action="store", default=FALSE, type='logical',
+              help="Also write a munged (Z-score) copy of the sumstats [optional]"),
   make_option("--test", action="store", default=NA, type='character',
               help="Specify number of SNPs to include [optional]")
 )
@@ -210,6 +212,15 @@ GWAS<-GWAS[GWAS$SE != 0 & !(is.infinite(GWAS$SE)),]
 log_add(log_file = log_file, message = paste0('After removal of SNPs with SE == 0, ',nrow(GWAS),' variants remain.'))
 
 #####
+# Log summary statistics describing the cleaned sumstats
+#####
+
+chi2 <- qchisq(GWAS$P, df = 1, lower.tail = FALSE)
+log_add(log_file = log_file, message = paste0('Lambda GC = ', round(median(chi2) / qchisq(0.5, 1), 3)))
+log_add(log_file = log_file, message = paste0('Max chi-square = ', round(max(chi2), 3)))
+log_add(log_file = log_file, message = paste0(sum(GWAS$P < 5e-8), ' variants with P < 5e-8.'))
+
+#####
 # Write out results
 #####
 
@@ -218,6 +229,22 @@ if(file.exists(paste0(opt$output,'.gz'))){
 }
 
 fwrite(GWAS, paste0(opt$output,'.gz'), sep='\t', na='NA', quote=F)
+
+#####
+# Write out munged results
+#####
+# Z-score format required by LDSC and FUSION
+
+if(isTRUE(opt$munged)){
+  munged <- GWAS[, list(CHR, SNP, BP, A1, A2, Z = BETA/SE, N)]
+
+  if(file.exists(paste0(opt$output,'.munged.sumstats.gz'))){
+    system(paste0('rm ',opt$output,'.munged.sumstats.gz'))
+  }
+
+  fwrite(munged, paste0(opt$output,'.munged.sumstats.gz'), sep='\t', na='NA', quote=F)
+  log_add(log_file = log_file, message = paste0('Munged sumstats written for ',nrow(munged),' variants.'))
+}
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
