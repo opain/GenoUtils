@@ -521,10 +521,21 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
       targ_by_chr<-split(targ, targ$CHR)
       rm(targ); gc()
 
+      missing_chr<-integer(0)
       matched_list<-vector("list", length(chr))
 
       for(idx in seq_along(chr)){
         i<-chr[idx]
+
+        # Extract and free this chromosome's target data
+        targ_i<-targ_by_chr[[as.character(i)]]
+        targ_by_chr[[as.character(i)]]<-NULL
+
+        # Skip chromosomes absent from the target GWAS
+        if(is.null(targ_i) || nrow(targ_i) == 0L){
+          missing_chr<-c(missing_chr, i)
+          next
+        }
 
         # Read reference data
         ref_i<-readRDS(file = paste0(ref_rds,i,'.rds'))
@@ -534,10 +545,6 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         names(ref_i)[names(ref_i) == paste0('REF.REF.FRQ.',population)]<-'REF.FREQ'
         ref_i$BP<-ref_i[[paste0('REF.BP_',target_build)]]
         ref_i<-ref_i[, c('REF.CHR','REF.SNP','BP','REF.BP_GRCh37','REF.A1','REF.A2','REF.IUPAC','REF.FREQ'), with=F]
-
-        # Extract and free this chromosome's target data
-        targ_i<-targ_by_chr[[as.character(i)]]
-        targ_by_chr[[as.character(i)]]<-NULL
 
         # Merge target and reference by BP
         ref_target<-merge(targ_i, ref_i, by='BP')
@@ -571,6 +578,10 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
       rm(targ_by_chr)
       targ_matched<-data.table::rbindlist(matched_list)
       rm(matched_list)
+
+      if(length(missing_chr) > 0){
+        log_add(log_file = log_file, message = paste0('The following chromosomes were absent from the target GWAS and skipped: ', paste(missing_chr, collapse = ', '), '.'))
+      }
     }
 
     if(is.na(target_build) & !(rsid_avail)){
@@ -628,6 +639,12 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
     }
 
     targ_matched<-data.table::rbindlist(matched_list)
+
+    empty_chr<-chr[vapply(matched_list, function(x) is.null(x) || nrow(x) == 0L, logical(1))]
+    if(length(empty_chr) > 0){
+      log_add(log_file = log_file, message = paste0('The following chromosomes contributed no variants matched to the reference: ', paste(empty_chr, collapse = ', '), '.'))
+    }
+
     rm(matched_list)
   }
 

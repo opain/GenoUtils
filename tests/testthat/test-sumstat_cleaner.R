@@ -443,3 +443,33 @@ test_that("run sumstat_cleaner.R script with raw_sumstats_1 and but with CHR:BP:
   # Test if the function runs without errors or warnings and correctly updates the header
   expect_equal(sumstat_cleaner_output_1$sumstats, cleaned)
 })
+
+test_that("run sumstat_cleaner.R script with raw_sumstats_1 subset missing chromosomes", {
+  # Specify location of relevant files
+  rscript_path <- file.path(Sys.getenv("R_HOME"), "bin", "Rscript")
+  script_path <- system.file("scripts", "sumstat_cleaner.R", package = "GenoUtils")
+  ref_path <- gsub( '22.rds','', system.file("extdata", "ref.chr22.rds", package = "GenoUtils"))
+  tmp_dir<-tempdir()
+
+  # Retain only chromosomes 21 and 22 so chromosomes 1-20 are absent from the target
+  tmp <- data.table::copy(raw_sumstats_1)
+  tmp <- tmp[tmp$CHR %in% c(21, 22), ]
+
+  # Write test GWAS sumstats as temporary file on disk
+  fwrite(tmp, paste0(tmp_dir, '/raw_missing_chr.txt'), sep=' ', na='NA', row.names=F)
+
+  # Run sumstat_cleaner.R with test data (no --test, so ref_harmonise sees chr = 1:22)
+  status <- system(paste0(rscript_path, " ", script_path ," --sumstats ",tmp_dir, "/raw_missing_chr.txt --ref_chr ",ref_path," --population EUR --output ", tmp_dir,"/clean_missing_chr"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+
+  # Script must complete without error
+  expect_equal(status, 0L, info = "sumstat_cleaner.R must not error when the GWAS is missing chromosomes.")
+
+  # Cleaned output must exist and contain only the chromosomes present in the target
+  cleaned <- fread(paste0(tmp_dir, "/clean_missing_chr.gz"))
+  expect_true(nrow(cleaned) > 0)
+  expect_setequal(unique(cleaned$CHR), c(21, 22))
+
+  # Log must record the absent chromosomes
+  log_content <- readLines(paste0(tmp_dir, "/clean_missing_chr.log"))
+  expect_true(any(grepl("absent from the target GWAS and skipped", log_content)))
+})
