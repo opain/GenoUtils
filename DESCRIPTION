@@ -1,7 +1,7 @@
 Package: GenoUtils
 Type: Package
 Title: Functions for GenoDisc and GenoPred
-Version: 0.1.1
+Version: 0.1.2
 Author: Oliver Pain
 Maintainer: Oliver Pain <oliver.pain@kcl.ac.uk>
 Description: This package contains functions that are used by the GenoDisc and GenoPred pipelines.
