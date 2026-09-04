@@ -25,7 +25,7 @@ option_list = list(
   make_option("--munged", action="store", default=FALSE, type='logical',
               help="Also write a munged (Z-score) copy of the sumstats [optional]"),
   make_option("--merge_alleles", action="store", default=NA, type='character',
-              help="Path to an LDSC --merge-alleles SNP list (columns SNP, A1, A2, e.g. w_hm3.snplist). When set, the munged output is restricted to these SNPs with compatible alleles [optional]"),
+              help="Path to an LDSC --merge-alleles SNP list (columns SNP, A1, A2, e.g. w_hm3.snplist). When set (with --munged T), an additional .munged.mergealleles.sumstats.gz copy is written, restricted to these SNPs with compatible alleles; the full .munged.sumstats.gz is left intact [optional]"),
   make_option("--test", action="store", default=NA, type='character',
               help="Specify number of SNPs to include [optional]")
 )
@@ -240,36 +240,41 @@ fwrite(GWAS, paste0(opt$output,'.gz'), sep='\t', na='NA', quote=F)
 if(isTRUE(opt$munged)){
   munged <- GWAS[, list(CHR, SNP, BP, A1, A2, Z = BETA/SE, N)]
 
-  # Optionally restrict/align the munged output to an LDSC --merge-alleles SNP
-  # list (e.g. HapMap3 w_hm3.snplist). This mirrors munge_sumstats.py
-  # --merge-alleles: keep only SNPs present in the list whose alleles are
-  # compatible with the list's alleles (same, ref-allele flip or strand flip),
-  # dropping strand-ambiguous SNPs. It guarantees a common allele coding so
-  # downstream LDSC --rg against other sumstats munged with the same list never
-  # hits 'Incompatible alleles in .sumstats files'.
-  if(!is.na(opt$merge_alleles) && opt$merge_alleles != 'NA'){
-    n_pre <- nrow(munged)
-    ma <- fread(opt$merge_alleles)
-    if(!all(c('SNP','A1','A2') %in% names(ma))){
-      stop('--merge_alleles file must have columns SNP, A1, A2.')
-    }
-    ma <- ma[, list(SNP, MA.IUPAC = snp_iupac(A1, A2))]
-    munged$IUPAC <- snp_iupac(munged$A1, munged$A2)
-    munged <- merge(munged, ma, by = 'SNP')
-    keep <- (munged$IUPAC == munged$MA.IUPAC |
-             detect_strand_flip(munged$IUPAC, munged$MA.IUPAC)) &
-            !(munged$IUPAC %in% c('S','W'))
-    keep[is.na(keep)] <- FALSE
-    munged <- munged[keep, list(CHR, SNP, BP, A1, A2, Z, N)]
-    log_add(log_file = log_file, message = paste0('Merge-alleles: retained ', nrow(munged), ' of ', n_pre, ' munged variants present in ', opt$merge_alleles, ' with compatible alleles.'))
-  }
-
   if(file.exists(paste0(opt$output,'.munged.sumstats.gz'))){
     system(paste0('rm ',opt$output,'.munged.sumstats.gz'))
   }
 
   fwrite(munged, paste0(opt$output,'.munged.sumstats.gz'), sep='\t', na='NA', quote=F)
   log_add(log_file = log_file, message = paste0('Munged sumstats written for ',nrow(munged),' variants.'))
+
+  # When a --merge_alleles list is supplied, ALSO write a separate copy restricted
+  # to that SNP list with a common allele coding (same, ref-allele flip or strand
+  # flip; strand-ambiguous dropped), mirroring munge_sumstats.py --merge-alleles.
+  # This copy is for LDSC (h2 / genetic correlation), which needs a shared allele
+  # coding to avoid 'Incompatible alleles in .sumstats files'. The full .munged
+  # file above is left intact for analyses (e.g. FUSION TWAS) that use SNPs beyond
+  # the merge-alleles list.
+  if(!is.na(opt$merge_alleles) && opt$merge_alleles != 'NA'){
+    ma <- fread(opt$merge_alleles)
+    if(!all(c('SNP','A1','A2') %in% names(ma))){
+      stop('--merge_alleles file must have columns SNP, A1, A2.')
+    }
+    ma <- ma[, list(SNP, MA.IUPAC = snp_iupac(A1, A2))]
+    merged <- merge(munged, ma, by = 'SNP')
+    merged$IUPAC <- snp_iupac(merged$A1, merged$A2)
+    keep <- (merged$IUPAC == merged$MA.IUPAC |
+             detect_strand_flip(merged$IUPAC, merged$MA.IUPAC)) &
+            !(merged$IUPAC %in% c('S','W'))
+    keep[is.na(keep)] <- FALSE
+    merged <- merged[keep, list(CHR, SNP, BP, A1, A2, Z, N)]
+
+    if(file.exists(paste0(opt$output,'.munged.mergealleles.sumstats.gz'))){
+      system(paste0('rm ',opt$output,'.munged.mergealleles.sumstats.gz'))
+    }
+
+    fwrite(merged, paste0(opt$output,'.munged.mergealleles.sumstats.gz'), sep='\t', na='NA', quote=F)
+    log_add(log_file = log_file, message = paste0('Merge-alleles copy written for ', nrow(merged), ' of ', nrow(munged), ' variants present in ', opt$merge_alleles, ' with compatible alleles.'))
+  }
 }
 
 end.time <- Sys.time()
