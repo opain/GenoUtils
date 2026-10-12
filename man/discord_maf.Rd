@@ -9,7 +9,9 @@ discord_maf(
   thresh,
   log_file = NULL,
   plot_file = NA,
-  max_drop_frac = 0.25
+  max_drop_frac = 0.25,
+  fold_tol = 0.05,
+  eps = 1e-04
 )
 }
 \arguments{
@@ -21,13 +23,41 @@ discord_maf(
 
 \item{plot_file}{Optional; path to save a plot file visualizing the frequency discrepancies.}
 
-\item{max_drop_frac}{Optional; Maximum fraction of variants with discordant FREQ to reference.}
+\item{max_drop_frac}{Optional; the discordance guard. When more than this fraction of variants
+are discordant with the reference, the reported frequency is classified (see Details) rather
+than silently dropping that many variants. Default 0.25.}
+
+\item{fold_tol}{Optional; a reported frequency column is treated as a folded minor-allele
+frequency when at most this fraction of its values exceed 0.5. A genuine (even allele-flipped)
+effect-allele frequency has ~half its values above 0.5; a folded MAF has ~none. Default 0.05.}
+
+\item{eps}{Optional; tolerance for the ">0.5" test. Default 1e-4.}
 }
 \value{
-A filtered data frame with variants within the specified frequency discrepancy threshold.
+The target with directionally-discordant variants removed and \code{FREQ} kept (concordant
+case), or with folded-discordant variants removed and \code{FREQ} dropped (folded-MAF case), or an
+error is raised (flip / reference-mismatch cases).
 }
 \description{
 This function filters out variants from the target dataset where the absolute difference between reported and reference allele frequencies exceeds a specified threshold. Optionally, it can generate a plot of these discrepancies.
+}
+\details{
+Compares the reported frequency against the A1-oriented, unfolded reference frequency
+(\code{REF.FREQ}) and acts on the pattern of discordance:
+\itemize{
+\item Discordance within the guard -> keep \code{FREQ} and drop only the individual discordant
+variants (the original per-variant QC; retains the effect-allele-assignment check).
+\item Discordance over the guard, but the values agree with the reference once both are
+folded, and the reported column is itself folded -> the column is minor-allele frequency.
+Direction is unusable (the effect-allele-assignment check is forfeit), but the magnitude
+check still holds: variants whose folded MAF disagrees with the reference are removed, the
+\code{FREQ} column is dropped, and processing continues using the reference frequency downstream.
+\item Discordance over the guard, agreeing when folded, but the reported column is NOT folded
+(~half its values exceed 0.5) -> the frequencies are the complement of the reference, i.e.
+the effect allele (A1/A2) appears flipped -> error.
+\item Discordance over the guard that persists after folding -> a mismatched reference panel
+or population, or a strand/build mismatch -> error.
+}
 }
 \examples{
 filtered_data <- discord_maf( targ = clean_sumstats_1,
