@@ -742,9 +742,34 @@ filter_maf<-function(targ, thresh, ref = F, log_file = NULL){
 #' @param thresh A numeric threshold for the absolute frequency difference.
 #' @param log_file Optional; path to a log file where messages will be recorded.
 #' @param plot_file Optional; path to save a plot file visualizing the frequency discrepancies.
-#' @param max_drop_frac Optional; Maximum fraction of variants with discordant FREQ to reference.
+#' @param max_drop_frac Optional; the discordance guard. When more than this fraction of variants
+#'   are discordant with the reference, the reported frequency is classified (see Details) rather
+#'   than silently dropping that many variants. Default 0.25.
+#' @param fold_tol Optional; a reported frequency column is treated as a folded minor-allele
+#'   frequency when at most this fraction of its values exceed 0.5. A genuine (even allele-flipped)
+#'   effect-allele frequency has ~half its values above 0.5; a folded MAF has ~none. Default 0.05.
+#' @param eps Optional; tolerance for the ">0.5" test. Default 1e-4.
 #'
-#' @return A filtered data frame with variants within the specified frequency discrepancy threshold.
+#' @details Compares the reported frequency against the A1-oriented, unfolded reference frequency
+#'   (`REF.FREQ`) and acts on the pattern of discordance:
+#'   \itemize{
+#'     \item Discordance within the guard -> keep `FREQ` and drop only the individual discordant
+#'       variants (the original per-variant QC; retains the effect-allele-assignment check).
+#'     \item Discordance over the guard, but the values agree with the reference once both are
+#'       folded, and the reported column is itself folded -> the column is minor-allele frequency.
+#'       Direction is unusable (the effect-allele-assignment check is forfeit), but the magnitude
+#'       check still holds: variants whose folded MAF disagrees with the reference are removed, the
+#'       `FREQ` column is dropped, and processing continues using the reference frequency downstream.
+#'     \item Discordance over the guard, agreeing when folded, but the reported column is NOT folded
+#'       (~half its values exceed 0.5) -> the frequencies are the complement of the reference, i.e.
+#'       the effect allele (A1/A2) appears flipped -> error.
+#'     \item Discordance over the guard that persists after folding -> a mismatched reference panel
+#'       or population, or a strand/build mismatch -> error.
+#'   }
+#'
+#' @return The target with directionally-discordant variants removed and `FREQ` kept (concordant
+#'   case), or with folded-discordant variants removed and `FREQ` dropped (folded-MAF case), or an
+#'   error is raised (flip / reference-mismatch cases).
 #' @export
 #'
 #' @import data.table
@@ -756,7 +781,7 @@ filter_maf<-function(targ, thresh, ref = F, log_file = NULL){
 #'                               thresh = 0.01,
 #'                               plot_file = paste0(tempdir(),"/plot.png"),
 #'                               max_drop_frac = 0.9)
-discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA, max_drop_frac = 0.25){
+discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA, max_drop_frac = 0.25, fold_tol = 0.05, eps = 1e-4){
   # Convert data.frame to data.table if necessary
   if (is.data.frame(targ)) {
     targ <- data.table::as.data.table(targ)
@@ -766,40 +791,89 @@ discord_maf<-function(targ, thresh, log_file = NULL, plot_file = NA, max_drop_fr
     stop('REF.FREQ column must be present in targ')
   }
 
-  if(sum(names(targ) == 'FREQ') == 1){
-    targ$diff<-abs(targ$FREQ-targ$REF.FREQ)
-
-    if(!is.na(plot_file)){
-      png(plot_file, units='px', res=300, width=1200, height=1200)
-      plot(targ$REF.FREQ[targ$diff > thresh],targ$FREQ[targ$diff > thresh], xlim=c(0,1), ylim=c(0,1), xlab='Reference Allele Frequency', ylab='Sumstat Allele Frequency')
-      abline(coef = c(0,1))
-      dev.off()
-    }
-
-    n_before <- nrow(targ)
-    targ<-targ[targ$diff < thresh,]
-    targ$diff<-NULL
-
-    log_add(log_file = log_file, message = paste0('After removal of SNPs with absolute MAF difference of < ',thresh,', ',nrow(targ),' variants remain.'))
-
-    drop_frac <- 1 - nrow(targ) / n_before
-    if (n_before > 0 && drop_frac > max_drop_frac) {
-        msg <- paste0(
-            'Discord-MAF filter dropped ', sprintf('%.1f', 100*drop_frac),
-            '% of SNPs (threshold ', sprintf('%.0f', 100*max_drop_frac),
-            '%). This usually indicates the wrong FREQ column was chosen ',
-            '(e.g. MAF instead of effect-allele frequency), a mismatched ',
-            'reference panel or population, or a strand/build mismatch. ',
-            'Inspect ', ifelse(is.na(plot_file), '<MAF plot disabled>', plot_file),
-            ' and the column-interpretation table in the cleaner log.'
-          )
-        log_add(log_file = log_file, message = paste0('ERROR: ', msg))
-        stop(msg, call. = FALSE)
-      }
-    } else {
+  if(sum(names(targ) == 'FREQ') != 1){
     log_add(log_file = log_file, message = 'Reported MAF column is not present, so discordance with reference cannot be determined.')
+    return(targ)
   }
-  return(targ)
+
+  # Per-variant discordance, directional (unfolded) and magnitude-only (folded).
+  diff_unfolded <- abs(targ$FREQ - targ$REF.FREQ)
+  maf_targ <- pmin(targ$FREQ, 1 - targ$FREQ)
+  maf_ref  <- pmin(targ$REF.FREQ, 1 - targ$REF.FREQ)
+  diff_folded <- abs(maf_targ - maf_ref)
+
+  # Diagnostic plot of the directionally-discordant variants (unchanged behaviour).
+  if(!is.na(plot_file)){
+    png(plot_file, units='px', res=300, width=1200, height=1200)
+    plot(targ$REF.FREQ[which(diff_unfolded > thresh)], targ$FREQ[which(diff_unfolded > thresh)], xlim=c(0,1), ylim=c(0,1), xlab='Reference Allele Frequency', ylab='Sumstat Allele Frequency')
+    abline(coef = c(0,1))
+    dev.off()
+  }
+
+  ok <- !is.na(targ$FREQ) & !is.na(targ$REF.FREQ)
+  n_eval <- sum(ok)
+  if(n_eval == 0){
+    log_add(log_file = log_file, message = 'No variants have both reported and reference frequencies, so discordance with reference cannot be determined.')
+    return(targ)
+  }
+
+  d_unfolded   <- mean(diff_unfolded[ok] >= thresh)
+  d_folded     <- mean(diff_folded[ok]   >= thresh)
+  frac_gt_half <- mean(targ$FREQ[ok] > 0.5 + eps)
+  folded_col   <- frac_gt_half <= fold_tol
+  pct_a1_major <- mean(targ$REF.FREQ[ok] > 0.5)
+
+  log_add(log_file = log_file, message = sprintf(
+    'FREQ-vs-reference QC: unfolded discordance %.1f%%, folded discordance %.1f%%, reported column folded = %s (%.2f%% of values > 0.5), effect allele (A1) is the major allele for %.1f%% of variants.',
+    100*d_unfolded, 100*d_folded, folded_col, 100*frac_gt_half, 100*pct_a1_major))
+
+  # 1) Concordant directional frequency -> original per-variant QC, keep FREQ.
+  if(d_unfolded <= max_drop_frac){
+    targ$diff <- diff_unfolded
+    targ <- targ[is.na(targ$diff) | targ$diff < thresh, ]
+    targ$diff <- NULL
+    log_add(log_file = log_file, message = paste0('After removal of SNPs with absolute MAF difference of < ', thresh, ', ', nrow(targ), ' variants remain.'))
+    return(targ)
+  }
+
+  # 2) Folded minor-allele frequency (agrees once folded, column itself folded).
+  #    Direction is unusable, so the allele-assignment check is forfeit, but the
+  #    magnitude check still holds: drop variants whose folded MAF disagrees with
+  #    the reference, then drop the FREQ column and proceed (downstream uses REF.FREQ).
+  if(d_folded <= max_drop_frac && folded_col){
+    msg <- paste0(
+      'Reported frequency appears to be minor-allele frequency (folded: ', sprintf('%.2f%%', 100*frac_gt_half),
+      ' of values > 0.5; the effect allele is the major allele for ', sprintf('%.1f%%', 100*pct_a1_major),
+      ' of variants per the reference). It cannot be used to verify effect-allele assignment, so it was ',
+      'dropped and the reference-panel frequency is used instead - the same as if no frequency were supplied.')
+    log_add(log_file = log_file, message = paste0('WARNING: ', msg))
+    targ$diff <- diff_folded
+    targ <- targ[is.na(targ$diff) | targ$diff < thresh, ]
+    targ$diff <- NULL
+    log_add(log_file = log_file, message = paste0('After removal of SNPs with absolute folded-MAF difference of >= ', thresh, ', ', nrow(targ), ' variants remain.'))
+    targ$FREQ <- NULL
+    return(targ)
+  }
+
+  # 3) Directional but complementary to the reference -> alleles flipped -> error.
+  if(d_folded <= max_drop_frac && !folded_col){
+    msg <- paste0(
+      'Reported allele frequencies are the complement of the reference for ', sprintf('%.1f%%', 100*d_unfolded),
+      ' of variants but agree once folded, indicating the effect allele (A1/A2) is flipped relative to the ',
+      'reference. Check the A1/A2 (effect-allele) assignment. Inspect ',
+      ifelse(is.na(plot_file), '<MAF plot disabled>', plot_file), ' and the column-interpretation table in the cleaner log.')
+    log_add(log_file = log_file, message = paste0('ERROR: ', msg))
+    stop(msg, call. = FALSE)
+  }
+
+  # 4) Discordance that persists after folding -> reference panel / population / strand / build mismatch -> error.
+  msg <- paste0(
+    'Reported allele frequencies disagree with the reference for ', sprintf('%.1f%%', 100*d_unfolded),
+    ' of variants, and the disagreement persists after folding (', sprintf('%.1f%%', 100*d_folded),
+    '). This indicates a mismatched reference panel or population, or a strand/build mismatch. Inspect ',
+    ifelse(is.na(plot_file), '<MAF plot disabled>', plot_file), ' and the column-interpretation table in the cleaner log.')
+  log_add(log_file = log_file, message = paste0('ERROR: ', msg))
+  stop(msg, call. = FALSE)
 }
 
 #' Filter Variants Based on Sample Size Deviation

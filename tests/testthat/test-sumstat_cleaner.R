@@ -473,3 +473,68 @@ test_that("run sumstat_cleaner.R script with raw_sumstats_1 subset missing chrom
   log_content <- readLines(paste0(tmp_dir, "/clean_missing_chr.log"))
   expect_true(any(grepl("absent from the target GWAS and skipped", log_content)))
 })
+
+##########
+# discord_maf
+##########
+
+# Helper: build a target with reported FREQ and A1-oriented reference REF.FREQ.
+.discord_targ <- function(ref, freq) {
+  n <- length(ref)
+  data.table(
+    SNP = paste0("rs", seq_len(n)), A1 = "A", A2 = "G",
+    BETA = 0, SE = 1, N = 1000, P = 0.5,
+    FREQ = pmin(pmax(freq, 0), 1), REF.FREQ = pmin(pmax(ref, 0), 1)
+  )
+}
+
+test_that("discord_maf keeps a concordant directional frequency and drops only discordant variants", {
+  set.seed(1)
+  ref <- runif(5000, 0.05, 0.95)
+  res <- discord_maf(.discord_targ(ref, ref + rnorm(5000, 0, 0.02)), thresh = 0.2)
+  expect_true("FREQ" %in% names(res))
+  expect_gt(nrow(res), 4900)  # a few near-threshold variants may be removed, almost all kept
+})
+
+test_that("discord_maf keeps a concordant frequency even when the effect allele is always the minor allele", {
+  # All reported values <= 0.5 but concordant with the reference => directional info must NOT be discarded.
+  set.seed(2)
+  ref <- runif(5000, 0.01, 0.49)
+  res <- discord_maf(.discord_targ(ref, ref + rnorm(5000, 0, 0.02)), thresh = 0.2)
+  expect_true("FREQ" %in% names(res))
+  expect_gt(nrow(res), 4900)
+})
+
+test_that("discord_maf drops a folded minor-allele frequency, still filters on folded discordance, and proceeds (no error)", {
+  # Folded MAF: magnitudes match the reference, effect allele often major. Direction is unusable
+  # (so FREQ is dropped), but the per-variant magnitude check still applies: variants whose folded
+  # MAF disagrees with the reference are removed, the rest proceed using REF.FREQ.
+  set.seed(3)
+  ref <- c(runif(2500, 0.02, 0.20), runif(2500, 0.80, 0.98))  # small reference MAF either side
+  maf_ref <- pmin(ref, 1 - ref)
+  freq <- maf_ref                                             # folded MAF, concordant in magnitude
+  disc <- sample(5000, 500)                                   # 10% with a large folded-MAF discrepancy
+  freq[disc] <- maf_ref[disc] + 0.30                          # still <= 0.5, so the column stays folded
+  res <- discord_maf(.discord_targ(ref, freq), thresh = 0.2)
+  expect_false("FREQ" %in% names(res))                        # direction-less column dropped
+  expect_true("REF.FREQ" %in% names(res))
+  expect_equal(nrow(res), 4500L)                              # the 500 folded-discordant variants removed
+})
+
+test_that("discord_maf errors when the reported frequency is the complement of the reference (alleles flipped)", {
+  set.seed(4)
+  ref <- runif(5000, 0.05, 0.95)
+  expect_error(
+    discord_maf(.discord_targ(ref, 1 - ref + rnorm(5000, 0, 0.02)), thresh = 0.2),
+    "flipped"
+  )
+})
+
+test_that("discord_maf errors when frequencies disagree even after folding (reference/population mismatch)", {
+  set.seed(5)
+  ref <- runif(5000, 0.05, 0.95)
+  expect_error(
+    discord_maf(.discord_targ(ref, runif(5000, 0.05, 0.95)), thresh = 0.2),
+    "mismatch"
+  )
+})
