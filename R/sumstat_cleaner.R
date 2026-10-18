@@ -568,7 +568,9 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
         matched$REF.FREQ[matched$A1 != matched$REF.A1]<-1-matched$REF.FREQ[matched$A1 != matched$REF.A1]
 
         # Retain reference SNP, REF.FREQ, and REF.BP_GRCh37 data
-        matched<-matched[, names(matched) %in% c('CHR','REF.BP_GRCh37','REF.SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P','IUPAC'), with=F]
+        # GD_ROWID is a caller-supplied per-row id (GenoDisc attrition reporting); carry
+        # it through so removed variants can be traced back to their original input row.
+        matched<-matched[, names(matched) %in% c('CHR','REF.BP_GRCh37','REF.SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P','IUPAC','GD_ROWID'), with=F]
         names(matched)[names(matched) == 'REF.SNP']<-'SNP'
         names(matched)[names(matched) == 'REF.BP_GRCh37']<-'BP'
 
@@ -631,7 +633,8 @@ ref_harmonise<-function(targ, ref_rds, population, log_file = NULL, chr = 1:22){
       matched$REF.FREQ[matched$A1 != matched$REF.A1]<-1-matched$REF.FREQ[matched$A1 != matched$REF.A1]
 
       # Retain reference CHR and BP_GRCh37 data
-      matched<-matched[, names(matched) %in% c('REF.CHR','REF.BP_GRCh37','SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P','IUPAC'), with=F]
+      # GD_ROWID is a caller-supplied per-row id (GenoDisc attrition reporting); carry it through.
+      matched<-matched[, names(matched) %in% c('REF.CHR','REF.BP_GRCh37','SNP','A1','A2','BETA','SE','OR','Z','FREQ','REF.FREQ','N','INFO','P','IUPAC','GD_ROWID'), with=F]
       names(matched)[names(matched) == 'REF.CHR']<-'CHR'
       names(matched)[names(matched) == 'REF.BP_GRCh37']<-'BP'
 
